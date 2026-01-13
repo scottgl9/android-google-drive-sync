@@ -32,7 +32,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -71,10 +73,20 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainScreen(
-                        viewModel = viewModel,
-                        onSignIn = { signInLauncher.launch(viewModel.getSignInIntent()) }
-                    )
+                    var showFileBrowser by remember { mutableStateOf(false) }
+
+                    if (showFileBrowser) {
+                        FileBrowserScreen(
+                            syncDirectory = syncDir,
+                            onBack = { showFileBrowser = false }
+                        )
+                    } else {
+                        MainScreen(
+                            viewModel = viewModel,
+                            onSignIn = { signInLauncher.launch(viewModel.getSignInIntent()) },
+                            onOpenFileBrowser = { showFileBrowser = true }
+                        )
+                    }
                 }
             }
         }
@@ -84,7 +96,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(
     viewModel: MainViewModel,
-    onSignIn: () -> Unit
+    onSignIn: () -> Unit,
+    onOpenFileBrowser: () -> Unit
 ) {
     val authState by viewModel.authState.collectAsState()
     val syncProgress by viewModel.syncProgress.collectAsState()
@@ -157,7 +170,8 @@ fun MainScreen(
                     syncDirectory = uiState.syncDirectory,
                     lastSyncTime = uiState.lastSyncTime,
                     isPeriodicSyncEnabled = uiState.isPeriodicSyncEnabled,
-                    onTogglePeriodicSync = { viewModel.togglePeriodicSync() }
+                    onTogglePeriodicSync = { viewModel.togglePeriodicSync() },
+                    onOpenFileBrowser = onOpenFileBrowser
                 )
             }
         }
@@ -377,7 +391,8 @@ fun SettingsCard(
     syncDirectory: String,
     lastSyncTime: Long?,
     isPeriodicSyncEnabled: Boolean,
-    onTogglePeriodicSync: () -> Unit
+    onTogglePeriodicSync: () -> Unit,
+    onOpenFileBrowser: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -404,6 +419,15 @@ fun SettingsCard(
                 text = syncDirectory,
                 style = MaterialTheme.typography.bodyMedium
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick = onOpenFileBrowser,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Browse Files")
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 

@@ -249,6 +249,20 @@
   - Snackbar notifications for results
 - [x] Added `hilt-navigation-compose` dependency for HiltViewModel
 
+### 2026-01-13 - Sample App File Browser
+
+#### File Browser Feature
+- [x] Implemented `FileBrowserScreen`:
+  - Directory navigation with back button
+  - File/folder list with icons and metadata
+  - Create new files and folders
+  - Delete files and folders
+  - File size and modification date display
+  - Empty directory state
+- [x] Integrated file browser into MainActivity:
+  - "Browse Files" button in Settings card
+  - Simple state-based navigation
+
 ### 2026-01-13 - Unit Tests Implementation
 
 #### Local Module Tests (`local/`)
