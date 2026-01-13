@@ -74,6 +74,7 @@ dependencies {
     // Unit Testing
     testImplementation(libs.bundles.testing)
     testRuntimeOnly(libs.junit5.engine)
+    testRuntimeOnly(libs.junit5.platform.launcher)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
 

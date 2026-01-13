@@ -83,7 +83,7 @@ class ConflictResolverTest {
 
             assertThat(result).isInstanceOf(ConflictResolution.KeepBoth::class.java)
             val keepBoth = result as ConflictResolution.KeepBoth
-            assertThat(keepBoth.suffix).startsWith("_conflict_")
+            assertThat(keepBoth.localSuffix).startsWith("_conflict")
         }
     }
 

@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.File
+import kotlin.time.Duration.Companion.milliseconds
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -262,7 +263,7 @@ class SyncManager @Inject constructor(
                         filesDeleted = 0,
                         filesSkipped = finalProgress.skippedFiles,
                         conflicts = emptyList(),
-                        duration = finalProgress.durationMs.kotlin.time.Duration.Companion.milliseconds,
+                        duration = finalProgress.durationMs.milliseconds,
                         bytesTransferred = finalProgress.bytesTransferred
                     )
                 }

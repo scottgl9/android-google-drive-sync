@@ -3,7 +3,6 @@ package com.vanespark.googledrivesync.sync
 import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import java.io.File
 import java.time.Instant
 import kotlin.time.Duration.Companion.seconds
 
@@ -14,17 +13,16 @@ class SyncModelsTest {
 
         @Test
         fun `SyncItem creates correctly with all parameters`() {
-            val localFile = File("/local/path/file.txt")
             val item = SyncItem(
                 relativePath = "docs/file.txt",
-                localFile = localFile,
-                remoteId = "remote123",
+                name = "file.txt",
+                localFile = null,
+                remoteFile = null,
                 action = SyncAction.UPLOAD
             )
 
             assertThat(item.relativePath).isEqualTo("docs/file.txt")
-            assertThat(item.localFile).isEqualTo(localFile)
-            assertThat(item.remoteId).isEqualTo("remote123")
+            assertThat(item.name).isEqualTo("file.txt")
             assertThat(item.action).isEqualTo(SyncAction.UPLOAD)
         }
 
@@ -32,13 +30,15 @@ class SyncModelsTest {
         fun `SyncItem allows null optional fields`() {
             val item = SyncItem(
                 relativePath = "file.txt",
+                name = "file.txt",
                 localFile = null,
-                remoteId = null,
-                action = SyncAction.NONE
+                remoteFile = null,
+                action = SyncAction.SKIP
             )
 
             assertThat(item.localFile).isNull()
-            assertThat(item.remoteId).isNull()
+            assertThat(item.remoteFile).isNull()
+            assertThat(item.conflict).isNull()
         }
     }
 
@@ -54,9 +54,8 @@ class SyncModelsTest {
                 SyncAction.DOWNLOAD,
                 SyncAction.DELETE_LOCAL,
                 SyncAction.DELETE_REMOTE,
-                SyncAction.CONFLICT,
                 SyncAction.SKIP,
-                SyncAction.NONE
+                SyncAction.CONFLICT
             )
         }
     }
@@ -104,14 +103,18 @@ class SyncModelsTest {
             val result = SyncResult.Success(
                 filesUploaded = 5,
                 filesDownloaded = 3,
+                filesDeleted = 1,
                 filesSkipped = 2,
+                conflicts = emptyList(),
                 bytesTransferred = 10000,
                 duration = 5.seconds
             )
 
             assertThat(result.filesUploaded).isEqualTo(5)
             assertThat(result.filesDownloaded).isEqualTo(3)
+            assertThat(result.filesDeleted).isEqualTo(1)
             assertThat(result.filesSkipped).isEqualTo(2)
+            assertThat(result.conflicts).isEmpty()
             assertThat(result.bytesTransferred).isEqualTo(10000)
             assertThat(result.duration).isEqualTo(5.seconds)
         }
@@ -133,12 +136,12 @@ class SyncModelsTest {
             assertThat(result.filesSucceeded).isEqualTo(8)
             assertThat(result.filesFailed).isEqualTo(2)
             assertThat(result.errors).hasSize(2)
-            assertThat(result.errors[0].path).isEqualTo("file1.txt")
+            assertThat(result.errors[0].relativePath).isEqualTo("file1.txt")
         }
 
         @Test
         fun `Error contains error message and optional cause`() {
-            val cause = IOException("Network error")
+            val cause = java.io.IOException("Network error")
             val result = SyncResult.Error(
                 message = "Sync failed",
                 cause = cause
@@ -165,9 +168,9 @@ class SyncModelsTest {
 
             assertThat(options.mode).isEqualTo(SyncMode.BIDIRECTIONAL)
             assertThat(options.conflictPolicy).isEqualTo(ConflictPolicy.NEWER_WINS)
-            assertThat(options.dryRun).isFalse()
-            assertThat(options.forceUpload).isFalse()
-            assertThat(options.forceDownload).isFalse()
+            assertThat(options.allowDeletions).isFalse()
+            assertThat(options.verifyChecksums).isTrue()
+            assertThat(options.useCache).isTrue()
         }
 
         @Test
@@ -185,19 +188,19 @@ class SyncModelsTest {
         }
 
         @Test
-        fun `MIRROR_TO_CLOUD preset has correct mode and policy`() {
+        fun `MIRROR_TO_CLOUD preset has correct mode and allows deletions`() {
             val options = SyncOptions.MIRROR_TO_CLOUD
 
             assertThat(options.mode).isEqualTo(SyncMode.MIRROR_TO_CLOUD)
-            assertThat(options.conflictPolicy).isEqualTo(ConflictPolicy.LOCAL_WINS)
+            assertThat(options.allowDeletions).isTrue()
         }
 
         @Test
-        fun `MIRROR_FROM_CLOUD preset has correct mode and policy`() {
+        fun `MIRROR_FROM_CLOUD preset has correct mode and allows deletions`() {
             val options = SyncOptions.MIRROR_FROM_CLOUD
 
             assertThat(options.mode).isEqualTo(SyncMode.MIRROR_FROM_CLOUD)
-            assertThat(options.conflictPolicy).isEqualTo(ConflictPolicy.REMOTE_WINS)
+            assertThat(options.allowDeletions).isTrue()
         }
 
         @Test
@@ -205,16 +208,20 @@ class SyncModelsTest {
             val options = SyncOptions(
                 mode = SyncMode.BIDIRECTIONAL,
                 conflictPolicy = ConflictPolicy.ASK_USER,
-                dryRun = true,
-                forceUpload = true,
-                forceDownload = false
+                allowDeletions = true,
+                subdirectory = "documents",
+                maxFiles = 100,
+                verifyChecksums = false,
+                useCache = false
             )
 
             assertThat(options.mode).isEqualTo(SyncMode.BIDIRECTIONAL)
             assertThat(options.conflictPolicy).isEqualTo(ConflictPolicy.ASK_USER)
-            assertThat(options.dryRun).isTrue()
-            assertThat(options.forceUpload).isTrue()
-            assertThat(options.forceDownload).isFalse()
+            assertThat(options.allowDeletions).isTrue()
+            assertThat(options.subdirectory).isEqualTo("documents")
+            assertThat(options.maxFiles).isEqualTo(100)
+            assertThat(options.verifyChecksums).isFalse()
+            assertThat(options.useCache).isFalse()
         }
     }
 
@@ -322,18 +329,27 @@ class SyncModelsTest {
             val useRemote: ConflictResolution = ConflictResolution.UseRemote
             val skip: ConflictResolution = ConflictResolution.Skip
             val keepBoth: ConflictResolution = ConflictResolution.KeepBoth("_copy")
+            val deleteBoth: ConflictResolution = ConflictResolution.DeleteBoth
 
             assertThat(useLocal).isEqualTo(ConflictResolution.UseLocal)
             assertThat(useRemote).isEqualTo(ConflictResolution.UseRemote)
             assertThat(skip).isEqualTo(ConflictResolution.Skip)
             assertThat(keepBoth).isInstanceOf(ConflictResolution.KeepBoth::class.java)
+            assertThat(deleteBoth).isEqualTo(ConflictResolution.DeleteBoth)
         }
 
         @Test
-        fun `KeepBoth contains suffix`() {
+        fun `KeepBoth contains localSuffix`() {
             val keepBoth = ConflictResolution.KeepBoth("_conflict_123")
 
-            assertThat(keepBoth.suffix).isEqualTo("_conflict_123")
+            assertThat(keepBoth.localSuffix).isEqualTo("_conflict_123")
+        }
+
+        @Test
+        fun `KeepBoth has default suffix`() {
+            val keepBoth = ConflictResolution.KeepBoth()
+
+            assertThat(keepBoth.localSuffix).isEqualTo("_conflict")
         }
     }
 
@@ -341,17 +357,26 @@ class SyncModelsTest {
     inner class SyncErrorTests {
 
         @Test
-        fun `SyncError contains path and message`() {
+        fun `SyncError contains relativePath and message`() {
             val error = SyncError(
-                path = "documents/important.pdf",
+                relativePath = "documents/important.pdf",
                 message = "Upload failed: connection reset"
             )
 
-            assertThat(error.path).isEqualTo("documents/important.pdf")
+            assertThat(error.relativePath).isEqualTo("documents/important.pdf")
             assertThat(error.message).isEqualTo("Upload failed: connection reset")
+        }
+
+        @Test
+        fun `SyncError can include cause`() {
+            val cause = RuntimeException("Network error")
+            val error = SyncError(
+                relativePath = "file.txt",
+                message = "Failed",
+                cause = cause
+            )
+
+            assertThat(error.cause).isEqualTo(cause)
         }
     }
 }
-
-// Helper class for testing - IOException is used in tests
-class IOException(message: String) : java.io.IOException(message)

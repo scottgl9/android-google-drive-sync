@@ -216,8 +216,8 @@ class FileFilterTest {
         fun `custom filter uses predicate`() {
             val filter = FileFilter.custom { it.name.length > 10 }
 
-            assertThat(filter.accept(txtFile)).isTrue() // "document.txt" = 12 chars
-            assertThat(filter.accept(pdfFile)).isTrue() // "report.pdf" = 10 chars - false
+            assertThat(filter.accept(txtFile)).isTrue() // "document.txt" = 12 chars > 10
+            assertThat(filter.accept(pdfFile)).isFalse() // "report.pdf" = 10 chars, not > 10
         }
     }
 
