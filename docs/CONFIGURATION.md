@@ -220,3 +220,74 @@ syncClient.schedulePeriodicSync(
     )
 )
 ```
+
+---
+
+## CompressionConfig
+
+Configuration for file compression.
+
+### Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `level` | CompressionLevel | DEFAULT | Compression level (NONE, FAST, DEFAULT, BEST) |
+| `minSizeToCompress` | Long | 1024 | Minimum file size to compress (bytes) |
+| `skipExtensions` | Set<String> | See below | Extensions to skip compression |
+| `bufferSize` | Int | 8192 | Buffer size for compression |
+
+### Default Skip Extensions
+
+Already compressed formats are skipped by default:
+- Archives: `zip`, `gz`, `rar`, `7z`, `tar`, `bz2`
+- Images: `jpg`, `jpeg`, `png`, `gif`, `webp`
+- Video: `mp4`, `mkv`, `avi`, `mov`
+- Audio: `mp3`, `aac`, `flac`, `ogg`
+- Documents: `pdf`
+
+### CompressionLevel
+
+| Level | Value | Description |
+|-------|-------|-------------|
+| `NONE` | 0 | No compression |
+| `FAST` | 1 | Fastest, least compression |
+| `DEFAULT` | 6 | Balanced speed/compression |
+| `BEST` | 9 | Maximum compression, slowest |
+
+### Example
+
+```kotlin
+compressionManager.configure(CompressionConfig(
+    level = CompressionLevel.FAST,
+    minSizeToCompress = 2048L,
+    skipExtensions = setOf("jpg", "png", "mp4", "zip"),
+    bufferSize = 16384
+))
+```
+
+---
+
+## RateLimitConfig
+
+Configuration for API rate limit handling.
+
+### Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `defaultDelay` | Duration | 60 seconds | Default delay when Retry-After not present |
+| `waitOnRateLimit` | Boolean | true | Auto-wait when rate limited |
+| `requestsPerSecond` | Int | 10 | Max requests per second (preemptive) |
+| `requestsPerMinute` | Int | 1000 | Max requests per minute (preemptive) |
+| `enablePreemptiveLimiting` | Boolean | true | Enable preemptive rate limiting |
+
+### Example
+
+```kotlin
+rateLimitHandler.configure(RateLimitConfig(
+    defaultDelay = 30.seconds,
+    waitOnRateLimit = true,
+    requestsPerSecond = 5,
+    requestsPerMinute = 500
+))
+```

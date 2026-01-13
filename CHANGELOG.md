@@ -11,7 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Room database persistence for sync state
 - Chunked upload for large files
 - Parallel upload/download operations
-- Compression before upload
+
+## [0.2.6] - 2026-01-13
+
+### Added
+- **Comprehensive Unit Tests**
+  - `CompressionManagerTest` - Tests for compression/decompression and configuration
+  - `DriveModelsTest` - Tests for DriveFile, DriveFolder, DriveOperationResult, DriveFileCache
+  - `SyncProgressTest` - Tests for SyncProgress, SyncPhase, ResumeInfo
+  - `SyncHistoryTest` - Tests for SyncHistoryEntry, SyncHistoryStatus, SyncStatistics
+  - `NetworkPolicyTest` - Tests for NetworkPolicy enum and RateLimitException
+
+### Changed
+- Updated README.md with comprehensive documentation for all features
+- Updated CONFIGURATION.md with CompressionConfig and RateLimitConfig sections
+- Improved project structure documentation
 
 ## [0.2.0] - 2026-01-13
 
@@ -197,6 +211,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 0.2.6 | 2026-01-13 | Comprehensive unit tests, documentation updates |
 | 0.2.5 | 2026-01-13 | Database backup helper (WAL, VACUUM, integrity) |
 | 0.2.4 | 2026-01-13 | Sync pause/resume functionality |
 | 0.2.3 | 2026-01-13 | Compression module, GitHub Actions CI |
@@ -205,7 +220,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | 0.2.0 | 2026-01-13 | Encryption, backup/restore, resilience, recursive file listing |
 | 0.1.0 | 2026-01-13 | Initial release with full sync functionality |
 
-[Unreleased]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.2...v0.2.3

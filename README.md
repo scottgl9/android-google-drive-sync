@@ -4,17 +4,38 @@ A robust, flexible Android library for synchronizing files with Google Drive.
 
 ## Features
 
+### Core Sync
 - **Bidirectional Sync**: Upload and download files between local storage and Google Drive
 - **Checksum-Based Deduplication**: Skip unchanged files using MD5/SHA256 hashing
 - **Recursive Subdirectory Support**: Full subdirectory sync with efficient O(1) file cache lookups
 - **Conflict Resolution**: Multiple strategies (local wins, remote wins, newer wins, keep both, skip, ask user)
-- **Background Sync**: WorkManager integration for scheduled periodic synchronization
-- **Resilient Operations**: Retry logic with exponential backoff and error recovery
-- **Flexible Configuration**: Configurable sync policies, folder structures, and file filters
+- **Pause/Resume**: Pause and resume sync operations mid-progress
 - **Progress Tracking**: Real-time sync progress via Kotlin StateFlow
-- **Sync History**: Track and analyze sync operations with statistics
-- **Backup & Restore**: Create and restore encrypted ZIP backups
-- **Encryption**: AES-256-GCM encryption with passphrase-based key derivation
+
+### Background & Scheduling
+- **Background Sync**: WorkManager integration for scheduled periodic synchronization
+- **Network Policies**: Configure sync to run only on WiFi, unmetered networks, or when not roaming
+
+### Security & Backup
+- **Encryption**: AES-256-GCM encryption with passphrase-based key derivation (PBKDF2)
+- **Backup & Restore**: Create and restore encrypted ZIP backups with integrity verification
+- **Database Backup Helper**: Safe SQLite database backup with WAL checkpoint, VACUUM INTO, and integrity checks
+
+### Resilience
+- **Retry Logic**: Exponential backoff with configurable retry policies
+- **Rate Limiting**: Intelligent handling of Google API rate limits with batch processing
+- **Multi-Device Safety**: Instance ID tracking to prevent data corruption from concurrent syncs
+- **Upload Verification**: Post-upload checksum verification with automatic corruption handling
+
+### Optimization
+- **Compression**: GZIP compression for text files with automatic skip for already-compressed formats
+- **File Filtering**: Flexible filters by extension, size, glob patterns, or custom predicates
+- **Duplicate Removal**: Identify and remove duplicate files to free storage
+
+### Developer Experience
+- **Hilt Integration**: Full dependency injection support
+- **Kotlin Coroutines**: Modern async/await patterns with Flow observables
+- **Sync History**: Track and analyze sync operations with aggregated statistics
 
 ## Requirements
 
@@ -149,10 +170,29 @@ val mirrorUpResult = syncClient.mirrorToCloud()     // Delete cloud files not in
 val mirrorDownResult = syncClient.mirrorFromCloud() // Delete local files not in cloud
 ```
 
-### 5. Cancel Sync
+### 5. Pause and Resume Sync
 
 ```kotlin
-// Cancel a running sync operation
+// Pause a running sync operation
+syncClient.pauseSync()
+
+// Resume a paused sync operation
+lifecycleScope.launch {
+    when (val result = syncClient.resumeSync()) {
+        is SyncResult.Success -> showMessage("Sync completed")
+        is SyncResult.Paused -> showMessage("Sync paused again")
+        else -> handleResult(result)
+    }
+}
+
+// Observe pause state
+lifecycleScope.launch {
+    syncClient.isPaused.collect { paused ->
+        updatePauseButton(paused)
+    }
+}
+
+// Cancel a running sync operation entirely
 syncClient.cancelSync()
 ```
 
@@ -247,6 +287,113 @@ showStats(
 
 // Clear history
 syncClient.clearSyncHistory()
+```
+
+### 10. Compression
+
+```kotlin
+@Inject
+lateinit var compressionManager: CompressionManager
+
+// Configure compression
+compressionManager.configure(CompressionConfig(
+    level = CompressionLevel.DEFAULT,
+    minSizeToCompress = 1024L, // Only compress files > 1KB
+    skipExtensions = setOf("jpg", "png", "mp4", "zip", "gz")
+))
+
+// Check if file should be compressed
+if (compressionManager.shouldCompress(file)) {
+    val result = compressionManager.compress(file) { progress ->
+        updateProgress(progress)
+    }
+    println("Compressed: ${result.percentSaved}% saved")
+}
+
+// Compress only if beneficial (smaller output)
+val (resultFile, wasCompressed) = compressionManager.compressIfBeneficial(
+    inputFile,
+    outputDir
+)
+```
+
+### 11. Encryption and Backup
+
+```kotlin
+@Inject
+lateinit var backupManager: BackupManager
+
+@Inject
+lateinit var restoreManager: RestoreManager
+
+// Create encrypted backup
+lifecycleScope.launch {
+    val result = backupManager.createBackup(
+        sourceDir = syncDir,
+        outputFile = File(backupDir, "backup.zip"),
+        passphrase = "user-passphrase"
+    ) { progress ->
+        updateProgress(progress)
+    }
+
+    if (result is BackupResult.Success) {
+        showMessage("Backup created: ${result.file.name}")
+    }
+}
+
+// Restore from encrypted backup
+lifecycleScope.launch {
+    val result = restoreManager.restoreBackup(
+        backupFile = File(backupDir, "backup.zip"),
+        targetDir = restoreDir,
+        passphrase = "user-passphrase"
+    ) { progress ->
+        updateProgress(progress)
+    }
+
+    if (result is RestoreResult.Success) {
+        showMessage("Restored ${result.filesRestored} files")
+    }
+}
+```
+
+### 12. Database Backup (for Room/SQLite)
+
+```kotlin
+@Inject
+lateinit var databaseBackupHelper: DatabaseBackupHelper
+
+// Create a safe database snapshot (uses VACUUM INTO)
+lifecycleScope.launch {
+    val result = databaseBackupHelper.createSnapshot(
+        sourcePath = database.path,
+        targetPath = backupFile.path
+    )
+
+    when (result) {
+        is DatabaseBackupResult.Success -> {
+            // Include backupFile in sync
+        }
+        is DatabaseBackupResult.Error -> {
+            showError(result.message)
+        }
+    }
+}
+
+// Restore database with integrity check
+lifecycleScope.launch {
+    // First verify the backup
+    val integrityResult = databaseBackupHelper.checkIntegrity(backupFile.path)
+    if (integrityResult.isValid) {
+        // Safely replace the current database
+        databaseBackupHelper.atomicReplace(
+            backupPath = backupFile.path,
+            targetPath = database.path
+        )
+        // Clean up WAL files after restore
+        databaseBackupHelper.deleteWalFiles(database.path)
+    }
+}
 ```
 
 ## Configuration Options
@@ -404,24 +551,39 @@ android-google-drive-sync/
 │   └── src/main/java/com/vanespark/googledrivesync/
 │       ├── api/                # Public API (GoogleSyncClient)
 │       ├── auth/               # Authentication (GoogleAuthManager)
+│       ├── backup/             # Backup & restore (BackupManager, RestoreManager)
 │       ├── cache/              # Manifest caching (SyncCache)
+│       ├── compression/        # GZIP compression (CompressionManager)
+│       ├── database/           # Database backup (DatabaseBackupHelper)
 │       ├── di/                 # Hilt modules (GoogleSyncModule)
 │       ├── drive/              # Drive operations (DriveService)
+│       ├── encryption/         # AES-256-GCM encryption (CryptoManager)
 │       ├── local/              # Local file operations (LocalFileManager)
-│       ├── resilience/         # Retry & network (RetryPolicy, NetworkMonitor)
+│       ├── resilience/         # Retry & network (RetryPolicy, RateLimitHandler)
 │       ├── sync/               # Sync engine (SyncManager, SyncEngine)
 │       └── worker/             # Background sync (SyncWorker, SyncScheduler)
+│   └── src/test/               # Unit tests
+│       └── java/com/vanespark/googledrivesync/
+│           ├── compression/    # CompressionManagerTest
+│           ├── drive/          # DriveModelsTest
+│           ├── local/          # FileHasherTest, FileFilterTest
+│           ├── resilience/     # NetworkPolicyTest, RetryPolicyTest, SyncProgressTest
+│           └── sync/           # SyncModelsTest, ConflictResolverTest, SyncHistoryTest
 ├── sample/                     # Sample application
 │   └── src/main/java/com/vanespark/googledrivesync/sample/
 │       ├── MainActivity.kt     # Main UI
 │       ├── MainViewModel.kt    # ViewModel
 │       ├── FileBrowserScreen.kt # File browser
 │       └── SyncHistoryScreen.kt # Sync history
+├── .github/                    # GitHub configuration
+│   ├── workflows/ci.yml        # CI/CD pipeline
+│   └── dependabot.yml          # Dependency updates
 ├── docs/                       # Documentation
 │   ├── INTEGRATION.md          # Integration guide
 │   ├── CONFIGURATION.md        # Configuration reference
 │   └── TROUBLESHOOTING.md      # Common issues
 ├── AGENTS.md                   # Development guidelines
+├── CHANGELOG.md                # Version history
 ├── TODO.md                     # Outstanding tasks
 ├── PROGRESS.md                 # Completed work
 └── README.md                   # This file
@@ -449,10 +611,13 @@ The library includes comprehensive unit tests:
 
 ```bash
 # Run all tests
-./gradlew :library:test
+./gradlew :library:testDebugUnitTest
 
 # Run specific test class
 ./gradlew :library:test --tests "*.FileFilterTest"
+
+# Run tests with verbose output
+./gradlew :library:testDebugUnitTest --info
 ```
 
 Test coverage includes:
@@ -461,6 +626,11 @@ Test coverage includes:
 - `ConflictResolverTest` - All conflict policies
 - `SyncModelsTest` - Data classes and enums
 - `RetryPolicyTest` - Retry logic and backoff
+- `CompressionManagerTest` - Compression/decompression and configuration
+- `DriveModelsTest` - Drive file models and operation results
+- `SyncProgressTest` - Progress tracking and sync phases
+- `SyncHistoryTest` - Sync history entries and statistics
+- `NetworkPolicyTest` - Network policies and rate limiting
 
 ## Sample App
 
@@ -492,18 +662,26 @@ Run the sample:
 
 ### Completed Features
 
+- [x] Bidirectional sync with conflict resolution
 - [x] Backup/Restore API (create/restore ZIP backups)
-- [x] Encryption at rest (AES-256-GCM)
+- [x] Encryption at rest (AES-256-GCM with PBKDF2)
 - [x] Rate limiting and resilience improvements
 - [x] Recursive subdirectory sync with file cache
+- [x] GZIP compression for compressible files
+- [x] Sync pause/resume functionality
+- [x] Database backup helper (WAL checkpoint, VACUUM INTO)
+- [x] Multi-device safety with instance ID tracking
+- [x] Duplicate file removal
+- [x] Upload integrity verification
+- [x] GitHub Actions CI/CD pipeline
 
 ### Planned Features
 
-- [ ] Compression before upload
-- [ ] Chunked upload for large files
-- [ ] Parallel upload/download
+- [ ] Chunked upload for large files (>100MB)
+- [ ] Parallel upload/download operations
 - [ ] Google Drive Shared Drives support
 - [ ] Real-time sync with Drive push notifications
+- [ ] Room database persistence for sync state
 
 See [TODO.md](TODO.md) for the complete roadmap.
 
