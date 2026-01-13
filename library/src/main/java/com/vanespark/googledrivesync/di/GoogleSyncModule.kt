@@ -221,7 +221,8 @@ object GoogleSyncModule {
         conflictResolver: ConflictResolver,
         backupManager: BackupManager,
         restoreManager: RestoreManager,
-        encryptionManager: EncryptionManager
+        encryptionManager: EncryptionManager,
+        driveService: DriveService
     ): GoogleSyncClient = GoogleSyncClient(
         authManager,
         syncManager,
@@ -229,6 +230,7 @@ object GoogleSyncModule {
         conflictResolver,
         backupManager,
         restoreManager,
-        encryptionManager
+        encryptionManager,
+        driveService
     )
 }

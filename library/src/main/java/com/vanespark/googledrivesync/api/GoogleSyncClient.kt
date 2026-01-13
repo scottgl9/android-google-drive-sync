@@ -15,6 +15,11 @@ import com.vanespark.googledrivesync.crypto.EncryptionConfig
 import com.vanespark.googledrivesync.crypto.EncryptionManager
 import com.vanespark.googledrivesync.crypto.EncryptionType
 import com.vanespark.googledrivesync.crypto.PassphraseStrength
+import com.vanespark.googledrivesync.drive.DownloadResult
+import com.vanespark.googledrivesync.drive.DriveBackupFile
+import com.vanespark.googledrivesync.drive.DriveOperationResult
+import com.vanespark.googledrivesync.drive.DriveService
+import com.vanespark.googledrivesync.drive.UploadResult
 import com.vanespark.googledrivesync.local.FileFilter
 import com.vanespark.googledrivesync.resilience.NetworkPolicy
 import com.vanespark.googledrivesync.resilience.SyncProgress
@@ -80,9 +85,11 @@ class GoogleSyncClient @Inject constructor(
     private val conflictResolver: ConflictResolver,
     private val backupManager: BackupManager,
     private val restoreManager: RestoreManager,
-    private val encryptionManager: EncryptionManager
+    private val encryptionManager: EncryptionManager,
+    private val driveService: DriveService
 ) {
     private var isConfigured = false
+    private var configuredRootFolderName: String = "GoogleDriveSync"
 
     // ========== Configuration ==========
 
@@ -98,6 +105,7 @@ class GoogleSyncClient @Inject constructor(
         builder.block()
         val config = builder.build()
 
+        configuredRootFolderName = config.rootFolderName
         syncManager.configure(config)
         isConfigured = true
     }
@@ -487,6 +495,174 @@ class GoogleSyncClient @Inject constructor(
     suspend fun hasSufficientSpaceForBackup(): Boolean? {
         val syncDirectory = syncManager.getSyncDirectory() ?: return null
         return backupManager.hasSufficientDiskSpace(syncDirectory)
+    }
+
+    // ========== Google Drive Backup Operations ==========
+
+    /**
+     * List all backups stored on Google Drive.
+     *
+     * @return List of backup files on Drive
+     */
+    suspend fun listDriveBackups(): DriveOperationResult<List<DriveBackupFile>> {
+        checkConfigured()
+        return when (val result = driveService.listBackups(configuredRootFolderName)) {
+            is DriveOperationResult.Success -> {
+                val backupFiles = result.data.map { driveFile ->
+                    DriveBackupFile(
+                        id = driveFile.id,
+                        name = driveFile.name,
+                        size = driveFile.size,
+                        createdTime = driveFile.modifiedTime
+                    )
+                }.sortedByDescending { it.createdTime }
+                DriveOperationResult.Success(backupFiles)
+            }
+            is DriveOperationResult.Error -> DriveOperationResult.Error(result.message, result.cause)
+            DriveOperationResult.NotSignedIn -> DriveOperationResult.NotSignedIn
+            DriveOperationResult.PermissionRequired -> DriveOperationResult.PermissionRequired
+            DriveOperationResult.ServiceUnavailable -> DriveOperationResult.ServiceUnavailable
+            DriveOperationResult.RateLimited -> DriveOperationResult.RateLimited
+            DriveOperationResult.NotFound -> DriveOperationResult.NotFound
+        }
+    }
+
+    /**
+     * Upload a backup file to Google Drive.
+     *
+     * @param localBackupFile The local backup file to upload
+     * @param backupName Optional custom name for the backup (defaults to file name)
+     * @return Upload result
+     */
+    suspend fun uploadBackupToDrive(
+        localBackupFile: File,
+        backupName: String? = null
+    ): DriveOperationResult<UploadResult> {
+        checkConfigured()
+        val name = backupName ?: localBackupFile.name
+        return driveService.uploadBackup(localBackupFile, name, configuredRootFolderName)
+    }
+
+    /**
+     * Download a backup file from Google Drive.
+     *
+     * @param fileId The Google Drive file ID of the backup
+     * @param destinationFile The local file to download to
+     * @return Download result
+     */
+    suspend fun downloadBackupFromDrive(
+        fileId: String,
+        destinationFile: File
+    ): DriveOperationResult<DownloadResult> {
+        checkConfigured()
+        return driveService.downloadFile(fileId, destinationFile)
+    }
+
+    /**
+     * Download and restore a backup from Google Drive.
+     *
+     * This is a convenience method that downloads the backup and then restores it.
+     *
+     * @param fileId The Google Drive file ID of the backup
+     * @param passphrase Optional passphrase for encrypted backups
+     * @return Restore result
+     */
+    suspend fun restoreBackupFromDrive(
+        fileId: String,
+        passphrase: String? = null
+    ): RestoreResult {
+        checkConfigured()
+        val syncDirectory = syncManager.getSyncDirectory()
+            ?: return RestoreResult.Error("Sync directory not configured")
+
+        // Create a temporary file for the download
+        val tempFile = File.createTempFile("drive_backup_", ".zip", syncDirectory.parentFile)
+        try {
+            // Download the backup
+            when (val downloadResult = driveService.downloadFile(fileId, tempFile)) {
+                is DriveOperationResult.Success -> {
+                    // Restore the backup
+                    return restoreManager.restoreBackup(tempFile, syncDirectory, passphrase)
+                }
+                is DriveOperationResult.Error -> {
+                    return RestoreResult.Error("Download failed: ${downloadResult.message}")
+                }
+                DriveOperationResult.NotSignedIn -> {
+                    return RestoreResult.Error("Not signed in to Google Drive")
+                }
+                DriveOperationResult.PermissionRequired -> {
+                    return RestoreResult.Error("Google Drive permission required")
+                }
+                DriveOperationResult.ServiceUnavailable -> {
+                    return RestoreResult.Error("Google Drive service unavailable")
+                }
+                DriveOperationResult.RateLimited -> {
+                    return RestoreResult.Error("Google Drive rate limited, please try again later")
+                }
+                DriveOperationResult.NotFound -> {
+                    return RestoreResult.Error("Backup file not found on Google Drive")
+                }
+            }
+        } finally {
+            // Clean up temporary file
+            tempFile.delete()
+        }
+    }
+
+    /**
+     * Create a backup and upload it to Google Drive.
+     *
+     * This is a convenience method that creates a local backup and uploads it.
+     *
+     * @param passphrase Optional passphrase for encryption
+     * @param useDeviceKeystore Use device keystore encryption (device-specific)
+     * @param backupName Optional custom name for the backup
+     * @return Upload result with backup info, or error
+     */
+    suspend fun createAndUploadBackup(
+        passphrase: String? = null,
+        useDeviceKeystore: Boolean = false,
+        backupName: String? = null
+    ): DriveOperationResult<UploadResult> {
+        checkConfigured()
+
+        // Create the local backup
+        val backupResult = createBackup(
+            outputFile = null,
+            passphrase = passphrase,
+            useDeviceKeystore = useDeviceKeystore
+        )
+
+        when (backupResult) {
+            is BackupResult.Success -> {
+                // Upload to Drive
+                val name = backupName ?: backupResult.info.file.name
+                val uploadResult = driveService.uploadBackup(
+                    backupResult.info.file,
+                    name,
+                    configuredRootFolderName
+                )
+
+                // Clean up local backup file after upload
+                backupResult.info.file.delete()
+
+                return uploadResult
+            }
+            is BackupResult.Error -> {
+                return DriveOperationResult.Error("Backup creation failed: ${backupResult.message}")
+            }
+        }
+    }
+
+    /**
+     * Delete a backup from Google Drive.
+     *
+     * @param fileId The Google Drive file ID of the backup to delete
+     * @return Operation result
+     */
+    suspend fun deleteBackupFromDrive(fileId: String): DriveOperationResult<Unit> {
+        checkConfigured()
+        return driveService.deleteFile(fileId)
     }
 
     // ========== Encryption ==========
