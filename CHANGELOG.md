@@ -47,6 +47,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `executeSyncPlan()` now uses batch processing with delays to avoid rate limiting
 - `executeSyncPlan()` now monitors progress timeout to cancel stalled syncs
 
+## [0.2.3] - 2026-01-13
+
+### Added
+- **Compression Module**
+  - `CompressionManager` - GZIP compression/decompression for files
+  - `CompressionConfig` - Configurable compression level and skip extensions
+  - `CompressionResult` - Result with size statistics and compression ratio
+  - `DecompressionResult` - Result with size statistics
+  - `compressIfBeneficial()` - Only compress if it reduces file size
+  - Auto-skip already compressed formats (zip, jpg, mp4, etc.)
+  - Progress callbacks for compression operations
+
+- **CI/CD**
+  - GitHub Actions workflow for build, test, and lint
+  - Dependabot for automated dependency updates
+
 ## [0.2.2] - 2026-01-13
 
 ### Added
@@ -156,12 +172,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 0.2.3 | 2026-01-13 | Compression module, GitHub Actions CI |
 | 0.2.2 | 2026-01-13 | Duplicate file removal, upload integrity verification |
 | 0.2.1 | 2026-01-13 | Multi-device safety, sync metadata, batch processing, progress timeout |
 | 0.2.0 | 2026-01-13 | Encryption, backup/restore, resilience, recursive file listing |
 | 0.1.0 | 2026-01-13 | Initial release with full sync functionality |
 
-[Unreleased]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.1.0...v0.2.0

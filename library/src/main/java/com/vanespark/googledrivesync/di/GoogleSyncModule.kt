@@ -6,6 +6,7 @@ import com.vanespark.googledrivesync.auth.GoogleAuthManager
 import com.vanespark.googledrivesync.backup.BackupManager
 import com.vanespark.googledrivesync.backup.RestoreManager
 import com.vanespark.googledrivesync.cache.SyncCache
+import com.vanespark.googledrivesync.compression.CompressionManager
 import com.vanespark.googledrivesync.crypto.CryptoManager
 import com.vanespark.googledrivesync.crypto.EncryptionManager
 import com.vanespark.googledrivesync.crypto.PassphraseBasedCrypto
@@ -118,6 +119,12 @@ object GoogleSyncModule {
         passphraseBasedCrypto: PassphraseBasedCrypto,
         cryptoManager: CryptoManager
     ): EncryptionManager = EncryptionManager(passphraseBasedCrypto, cryptoManager)
+
+    // ========== Compression ==========
+
+    @Provides
+    @Singleton
+    fun provideCompressionManager(): CompressionManager = CompressionManager()
 
     // ========== Backup ==========
 

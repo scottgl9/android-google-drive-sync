@@ -215,7 +215,7 @@
 - [x] Sync metadata file for change detection
 - [x] Batch processing with rate limit avoidance
 - [x] Progress timeout monitoring
-- [ ] Compression before upload
+- [x] Compression before upload
 - [ ] Bandwidth throttling
 - [ ] Sync pause/resume
 - [ ] Sync queue with priority
