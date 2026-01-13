@@ -19,9 +19,7 @@ import javax.inject.Singleton
  * - Caching folder IDs for optimization
  */
 @Singleton
-class DriveFolderManager @Inject constructor(
-    private val fileOperations: DriveFileOperations
-) {
+class DriveFolderManager @Inject constructor() {
     /**
      * Folder IDs for the standard sync structure
      */

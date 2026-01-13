@@ -52,9 +52,7 @@ object GoogleSyncModule {
 
     @Provides
     @Singleton
-    fun provideDriveFolderManager(
-        fileOperations: DriveFileOperations
-    ): DriveFolderManager = DriveFolderManager(fileOperations)
+    fun provideDriveFolderManager(): DriveFolderManager = DriveFolderManager()
 
     @Provides
     @Singleton

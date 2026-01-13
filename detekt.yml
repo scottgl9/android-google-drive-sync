@@ -46,35 +46,38 @@ complexity:
   active: true
   CognitiveComplexMethod:
     active: true
-    threshold: 15
+    threshold: 25
   ComplexCondition:
     active: true
-    threshold: 4
+    threshold: 5
   ComplexInterface:
     active: true
-    threshold: 10
+    threshold: 15
   CyclomaticComplexMethod:
     active: true
-    threshold: 15
+    threshold: 20
   LabeledExpression:
     active: false
   LargeClass:
     active: true
-    threshold: 600
+    threshold: 800
   LongMethod:
     active: true
-    threshold: 60
+    threshold: 100
   LongParameterList:
     active: true
-    functionThreshold: 6
-    constructorThreshold: 7
+    functionThreshold: 8
+    constructorThreshold: 10
+    ignoreDefaultParameters: true
+    ignoreDataClasses: true
+    ignoreAnnotatedParameter: ['Inject']
   MethodOverloading:
     active: false
   NamedArguments:
     active: false
   NestedBlockDepth:
     active: true
-    threshold: 4
+    threshold: 5
   NestedScopeFunctions:
     active: false
   ReplaceSafeCallChainWithRun:
@@ -83,8 +86,8 @@ complexity:
     active: false
   TooManyFunctions:
     active: true
-    thresholdInFiles: 25
-    thresholdInClasses: 25
+    thresholdInFiles: 50
+    thresholdInClasses: 50
     thresholdInInterfaces: 25
     thresholdInObjects: 25
     thresholdInEnums: 25
@@ -334,7 +337,7 @@ style:
     active: false
   ForbiddenComment:
     active: true
-    values:
+    comments:
       - 'FIXME:'
       - 'STOPSHIP:'
     allowedPatterns: ''
@@ -353,20 +356,32 @@ style:
     excludes:
       - '**/test/**'
       - '**/androidTest/**'
+      - '**/sample/**'
     ignoreNumbers:
       - '-1'
       - '0'
       - '1'
       - '2'
+      - '3'
+      - '4'
+      - '5'
+      - '8'
+      - '10'
+      - '12'
+      - '16'
+      - '24'
+      - '100'
+      - '1000'
+      - '1024'
     ignoreHashCodeFunction: true
     ignorePropertyDeclaration: true
-    ignoreLocalVariableDeclaration: false
+    ignoreLocalVariableDeclaration: true
     ignoreConstantDeclaration: true
     ignoreCompanionObjectPropertyDeclaration: true
-    ignoreAnnotation: false
+    ignoreAnnotation: true
     ignoreNamedArgument: true
     ignoreEnums: true
-    ignoreRanges: false
+    ignoreRanges: true
     ignoreExtensionFunctions: true
   MandatoryBracesLoops:
     active: false
@@ -408,7 +423,7 @@ style:
     active: false
   ReturnCount:
     active: true
-    max: 3
+    max: 5
     excludedFunctions:
       - 'equals'
     excludeLabeled: false

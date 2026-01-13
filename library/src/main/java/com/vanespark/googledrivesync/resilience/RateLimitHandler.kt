@@ -49,14 +49,9 @@ class RateLimitHandler @Inject constructor() {
     companion object {
         private const val TAG = "${Constants.TAG}/RateLimit"
 
-        // Default delays
-        private val DEFAULT_RATE_LIMIT_DELAY = 60.seconds
+        // Delay bounds
         private val MIN_RATE_LIMIT_DELAY = 1.seconds
         private val MAX_RATE_LIMIT_DELAY = 300.seconds // 5 minutes
-
-        // Quota limits (Google Drive API defaults)
-        private const val DEFAULT_REQUESTS_PER_SECOND = 10
-        private const val DEFAULT_REQUESTS_PER_MINUTE = 1000
     }
 
     // Rate limit state
@@ -112,11 +107,9 @@ class RateLimitHandler @Inject constructor() {
      * Handle a rate limit response (HTTP 429)
      *
      * @param retryAfterHeader Value of Retry-After header (optional)
-     * @param statusCode HTTP status code (for quota vs rate limit distinction)
      */
     fun handleRateLimitResponse(
-        retryAfterHeader: String? = null,
-        statusCode: Int = 429
+        retryAfterHeader: String? = null
     ) {
         val delay = parseRetryAfter(retryAfterHeader)
         val limitUntil = System.currentTimeMillis() + delay.inWholeMilliseconds

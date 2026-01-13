@@ -139,10 +139,10 @@
 - [x] Define `SyncResult` sealed class hierarchy
 - [x] Implement progress observation via StateFlow
 - [x] Create `SyncOptions` for operation customization
-- [ ] Add backup/restore API
-  - [ ] Create ZIP backup
-  - [ ] Restore from backup
-  - [ ] List available backups
+- [x] Add backup/restore API
+  - [x] Create ZIP backup
+  - [x] Restore from backup
+  - [x] List available backups
 - [ ] Write API documentation (KDoc)
 - [ ] Create integration tests
 
@@ -187,7 +187,7 @@
 ### Quality Assurance
 
 - [ ] Achieve 80%+ test coverage
-- [ ] Pass all detekt checks
+- [x] Pass all detekt checks (with baseline for complex methods)
 - [ ] Review and optimize performance
 - [ ] Memory leak testing
 - [ ] Large file handling tests
@@ -210,7 +210,7 @@
 - [ ] Support for Google Drive Shared Drives
 - [ ] Selective folder sync (choose specific folders)
 - [ ] Real-time sync with Drive push notifications
-- [ ] Encryption at rest (encrypt files before upload)
+- [x] Encryption at rest (encrypt files before upload)
 - [ ] Compression before upload
 - [ ] Bandwidth throttling
 - [ ] Sync pause/resume

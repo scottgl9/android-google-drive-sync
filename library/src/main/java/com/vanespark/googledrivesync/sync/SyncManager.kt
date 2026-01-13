@@ -1,7 +1,6 @@
 package com.vanespark.googledrivesync.sync
 
 import android.util.Log
-import com.vanespark.googledrivesync.auth.AuthState
 import com.vanespark.googledrivesync.auth.GoogleAuthManager
 import com.vanespark.googledrivesync.local.FileFilter
 import com.vanespark.googledrivesync.resilience.NetworkMonitor

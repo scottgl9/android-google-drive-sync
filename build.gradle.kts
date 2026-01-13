@@ -16,6 +16,10 @@ detekt {
     allRules = false
     config.setFrom("$projectDir/detekt.yml")
     baseline = file("$projectDir/detekt-baseline.xml")
+    source.setFrom(
+        "$projectDir/library/src/main/java",
+        "$projectDir/sample/src/main/java"
+    )
 }
 
 tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {

@@ -1,18 +1,14 @@
 package com.vanespark.googledrivesync.api
 
-import android.app.Activity
 import android.content.Intent
 import com.vanespark.googledrivesync.auth.AuthResult
 import com.vanespark.googledrivesync.auth.AuthState
 import com.vanespark.googledrivesync.auth.GoogleAuthManager
 import com.vanespark.googledrivesync.backup.BackupConfig
-import com.vanespark.googledrivesync.backup.BackupInfo
 import com.vanespark.googledrivesync.backup.BackupManager
-import com.vanespark.googledrivesync.backup.BackupPeekInfo
 import com.vanespark.googledrivesync.backup.BackupResult
 import com.vanespark.googledrivesync.backup.PeekResult
 import com.vanespark.googledrivesync.backup.RestoreConfig
-import com.vanespark.googledrivesync.backup.RestoreInfo
 import com.vanespark.googledrivesync.backup.RestoreManager
 import com.vanespark.googledrivesync.backup.RestoreResult
 import com.vanespark.googledrivesync.crypto.EncryptionConfig

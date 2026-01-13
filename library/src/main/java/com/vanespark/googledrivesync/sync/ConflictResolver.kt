@@ -139,14 +139,14 @@ class ConflictResolver @Inject constructor() {
     fun isConflict(
         localChecksum: String?,
         remoteChecksum: String?,
-        localModified: Instant?,
-        remoteModified: Instant?
+        @Suppress("UNUSED_PARAMETER") localModified: Instant?,
+        @Suppress("UNUSED_PARAMETER") remoteModified: Instant?
     ): Boolean {
         // If checksums match, no conflict
-        if (localChecksum != null && remoteChecksum != null) {
-            if (localChecksum.equals(remoteChecksum, ignoreCase = true)) {
-                return false
-            }
+        if (localChecksum != null && remoteChecksum != null &&
+            localChecksum.equals(remoteChecksum, ignoreCase = true)
+        ) {
+            return false
         }
 
         // Different checksums = conflict

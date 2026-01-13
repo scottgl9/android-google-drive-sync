@@ -265,7 +265,7 @@ class RestoreManager @Inject constructor(
         zipFile: File,
         targetDir: File,
         manifest: BackupManifest,
-        config: RestoreConfig
+        @Suppress("UNUSED_PARAMETER") config: RestoreConfig
     ): ExtractResult {
         var filesRestored = 0
         var bytesRestored = 0L
