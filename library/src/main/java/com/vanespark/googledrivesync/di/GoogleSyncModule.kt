@@ -21,6 +21,7 @@ import com.vanespark.googledrivesync.sync.ConflictResolver
 import com.vanespark.googledrivesync.sync.SyncEngine
 import com.vanespark.googledrivesync.sync.SyncHistoryManager
 import com.vanespark.googledrivesync.sync.SyncManager
+import com.vanespark.googledrivesync.sync.SyncMetadataManager
 import com.vanespark.googledrivesync.worker.SyncScheduler
 import dagger.Module
 import dagger.Provides
@@ -148,6 +149,12 @@ object GoogleSyncModule {
     fun provideSyncHistoryManager(
         @ApplicationContext context: Context
     ): SyncHistoryManager = SyncHistoryManager(context)
+
+    @Provides
+    @Singleton
+    fun provideSyncMetadataManager(
+        @ApplicationContext context: Context
+    ): SyncMetadataManager = SyncMetadataManager(context)
 
     @Provides
     @Singleton

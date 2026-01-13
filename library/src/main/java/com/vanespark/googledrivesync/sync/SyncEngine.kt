@@ -14,6 +14,7 @@ import com.vanespark.googledrivesync.resilience.SyncProgressManager
 import com.vanespark.googledrivesync.resilience.withRetry
 import com.vanespark.googledrivesync.util.Constants
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import java.io.File
 import javax.inject.Inject
@@ -272,14 +273,36 @@ class SyncEngine @Inject constructor(
 
         progressManager.startSync(syncItems.size)
 
+        // Track batch processing for rate limiting
+        var itemsInCurrentBatch = 0
+        var lastProgressTime = System.currentTimeMillis()
+
         try {
             for (item in syncItems) {
                 coroutineContext.ensureActive()
 
+                // Check for progress timeout (stalled sync)
+                val now = System.currentTimeMillis()
+                if (now - lastProgressTime > Constants.SYNC_PROGRESS_TIMEOUT_MS) {
+                    val timeout = Constants.SYNC_PROGRESS_TIMEOUT_MS
+                    Log.w(Constants.TAG, "Sync progress timeout - no progress for ${timeout}ms")
+                    throw CancellationException("Sync stalled - no progress timeout")
+                }
+
                 // Skip if already synced (resume support)
                 if (alreadySynced.contains(item.relativePath)) {
                     filesSkipped++
+                    lastProgressTime = System.currentTimeMillis()
                     continue
+                }
+
+                // Batch delay to avoid rate limiting
+                itemsInCurrentBatch++
+                if (itemsInCurrentBatch >= Constants.BATCH_SIZE) {
+                    val batchDelay = Constants.BATCH_DELAY_MS
+                    Log.d(Constants.TAG, "Batch complete ($itemsInCurrentBatch items), delay ${batchDelay}ms")
+                    delay(batchDelay)
+                    itemsInCurrentBatch = 0
                 }
 
                 try {
@@ -295,6 +318,7 @@ class SyncEngine @Inject constructor(
                                         filesUploaded++
                                         bytesTransferred += localFile.length()
                                         progressManager.fileUploaded(item.relativePath, localFile.length())
+                                        lastProgressTime = System.currentTimeMillis()
                                     }
                                     else -> {
                                         errors.add(SyncError(item.relativePath, "Upload failed: $result"))
@@ -316,6 +340,7 @@ class SyncEngine @Inject constructor(
                                         filesDownloaded++
                                         bytesTransferred += result.data.size
                                         progressManager.fileDownloaded(item.relativePath, result.data.size)
+                                        lastProgressTime = System.currentTimeMillis()
 
                                         // Verify checksum if enabled
                                         if (options.verifyChecksums && remoteFile.md5Checksum != null) {
@@ -339,6 +364,7 @@ class SyncEngine @Inject constructor(
                             if (localFile.delete()) {
                                 filesDeleted++
                                 progressManager.fileSkipped(item.relativePath)
+                                lastProgressTime = System.currentTimeMillis()
                             }
                         }
 
@@ -350,6 +376,7 @@ class SyncEngine @Inject constructor(
                                     is DriveOperationResult.Success -> {
                                         filesDeleted++
                                         progressManager.fileSkipped(item.relativePath)
+                                        lastProgressTime = System.currentTimeMillis()
                                     }
                                     else -> {
                                         errors.add(SyncError(item.relativePath, "Delete failed: $result"))
@@ -363,11 +390,13 @@ class SyncEngine @Inject constructor(
                             // Handle KEEP_BOTH by uploading with conflict suffix
                             handleKeepBothConflict(item, syncDirectory, rootFolderName)
                             filesUploaded++
+                            lastProgressTime = System.currentTimeMillis()
                         }
 
                         SyncAction.SKIP -> {
                             filesSkipped++
                             progressManager.fileSkipped(item.relativePath)
+                            lastProgressTime = System.currentTimeMillis()
                         }
                     }
                 } catch (e: CancellationException) {

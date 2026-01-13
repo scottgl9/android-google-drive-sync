@@ -44,6 +44,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `buildRemoteManifest()` now uses recursive listing for proper subdirectory support
 - `FileManifestEntry` now includes `driveFileId` for direct file downloads
+- `executeSyncPlan()` now uses batch processing with delays to avoid rate limiting
+- `executeSyncPlan()` now monitors progress timeout to cancel stalled syncs
+
+## [0.2.1] - 2026-01-13
+
+### Added
+- **Sync Metadata**
+  - `SyncMetadataManager` - Manages sync metadata for multi-device safety
+  - `SyncMetadataInfo` - Stores instance ID, checksum, timestamp, device info
+  - `SyncMetadataValidation` - Validation results for metadata checks
+  - Upload/download sync metadata to/from Google Drive
+
+- **Multi-Device Safety**
+  - Instance ID generation to identify sync sources
+  - Instance ID validation to prevent data corruption from multiple devices
+  - Device name tracking for identification
+
+- **Rate Limiting**
+  - Batch processing with configurable batch size (default 20)
+  - Configurable delay between batches (default 1 second)
+  - Progress timeout monitoring (default 30 seconds)
+  - Automatic cancellation of stalled syncs
 
 ## [0.1.0] - 2026-01-13
 
@@ -124,9 +146,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 0.2.1 | 2026-01-13 | Multi-device safety, sync metadata, batch processing, progress timeout |
 | 0.2.0 | 2026-01-13 | Encryption, backup/restore, resilience, recursive file listing |
 | 0.1.0 | 2026-01-13 | Initial release with full sync functionality |
 
-[Unreleased]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/scottgl9/android-google-drive-sync/releases/tag/v0.1.0

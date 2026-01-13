@@ -356,6 +356,33 @@
 - [x] Added `driveFileId` to `FileManifestEntry`:
   - Enables direct file downloads with correct ID
 
+### 2026-01-13 - Multi-Device Safety and Rate Limiting
+
+#### Sync Metadata (`sync/`)
+- [x] Implemented `SyncMetadataManager`:
+  - Instance ID generation and persistence
+  - Device name tracking
+  - Checksum tracking for change detection
+  - Metadata serialization/deserialization
+- [x] Implemented `SyncMetadataInfo`:
+  - Instance ID for multi-device safety
+  - Last sync checksum
+  - Timestamp and app version
+  - Device name for identification
+- [x] Implemented `SyncMetadataValidation`:
+  - Valid, NoMetadata, InstanceMismatch, Error states
+- [x] Added upload/download sync metadata extension functions
+
+#### Rate Limiting and Resilience (`sync/`)
+- [x] Added batch processing to `executeSyncPlan()`:
+  - Process files in batches of 20 (configurable)
+  - 1 second delay between batches
+  - Prevents API rate limiting
+- [x] Added progress timeout monitoring:
+  - 30 second timeout for stalled syncs
+  - Automatic cancellation with CancellationException
+  - Progress time tracking per operation
+
 ### 2026-01-13 - README Documentation Update
 
 #### Documentation
@@ -484,6 +511,7 @@ This library is informed by patterns from:
 | 0.0.6 | 2026-01-13 | Comprehensive README documentation |
 | 0.0.7 | 2026-01-13 | Encryption, backup/restore, rate limiting |
 | 0.0.8 | 2026-01-13 | Recursive file listing and file cache for efficient sync |
+| 0.0.9 | 2026-01-13 | Multi-device safety, sync metadata, batch processing |
 
 ---
 

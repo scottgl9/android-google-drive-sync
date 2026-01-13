@@ -211,6 +211,10 @@
 - [ ] Selective folder sync (choose specific folders)
 - [ ] Real-time sync with Drive push notifications
 - [x] Encryption at rest (encrypt files before upload)
+- [x] Multi-device safety with instance ID validation
+- [x] Sync metadata file for change detection
+- [x] Batch processing with rate limit avoidance
+- [x] Progress timeout monitoring
 - [ ] Compression before upload
 - [ ] Bandwidth throttling
 - [ ] Sync pause/resume
