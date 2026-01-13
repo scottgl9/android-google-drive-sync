@@ -101,7 +101,7 @@ class MainViewModel @Inject constructor(
                         syncResultMessage = "Sign-in cancelled"
                     )
                 }
-                AuthResult.NeedsPermission -> {
+                AuthResult.PermissionRequired -> {
                     _uiState.value = _uiState.value.copy(
                         syncResultMessage = "Additional permissions required"
                     )

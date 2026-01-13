@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Cloud with sync arrows icon -->
+    <group
+        android:translateX="24"
+        android:translateY="24">
+
+        <!-- Cloud shape -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M48.5,40c-0.5,-4.2 -4.2,-7.5 -8.5,-7.5c-3.5,0 -6.5,2 -7.9,5C28.2,37.8 25,41.2 25,45.5c0,4.7 3.8,8.5 8.5,8.5h14.5c3.9,0 7,-3.1 7,-7C55,43.5 52.1,40.4 48.5,40z"/>
+
+        <!-- Sync arrows (simplified) -->
+        <path
+            android:fillColor="#1976D2"
+            android:pathData="M42,44l-4,4l4,4M38,48h8M42,52l4,-4l-4,-4"/>
+
+    </group>
+</vector>

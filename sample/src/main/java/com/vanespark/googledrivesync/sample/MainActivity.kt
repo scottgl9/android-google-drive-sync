@@ -159,7 +159,7 @@ fun MainScreen(
                 SyncProgressCard(
                     phase = syncProgress.phase,
                     currentFile = syncProgress.currentFile,
-                    filesCompleted = syncProgress.filesCompleted,
+                    filesCompleted = syncProgress.processedFiles,
                     totalFiles = syncProgress.totalFiles,
                     bytesTransferred = syncProgress.bytesTransferred,
                     onCancel = { viewModel.cancelSync() }
