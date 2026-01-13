@@ -197,7 +197,7 @@
 
 - [ ] Version 1.0.0 feature freeze
 - [ ] Final documentation review
-- [ ] Create CHANGELOG.md
+- [x] Create CHANGELOG.md
 - [ ] Prepare Maven Central publishing
 - [ ] Create GitHub release
 

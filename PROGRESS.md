@@ -290,6 +290,15 @@
   - "View History" button in Settings card
   - Screen navigation
 
+### 2026-01-13 - CHANGELOG and Release Preparation
+
+#### Release Preparation
+- [x] Created CHANGELOG.md following Keep a Changelog format:
+  - Documented all features in v0.1.0 release
+  - Listed planned features for future releases
+  - Added version history summary
+  - Added GitHub release links
+
 ### 2026-01-13 - README Documentation Update
 
 #### Documentation
