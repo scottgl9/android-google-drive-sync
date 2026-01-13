@@ -73,34 +73,34 @@
 
 ### Sync Core (`sync/`)
 
-- [ ] Implement `SyncManager` as main orchestrator
-- [ ] Create `SyncEngine` with core sync logic
-  - [ ] Upload flow with checksum comparison
-  - [ ] Download flow with checksum comparison
-  - [ ] Full bidirectional sync
-  - [ ] Delta sync (changes only)
-- [ ] Implement `SyncPolicy` strategies
-  - [ ] Upload-only mode
-  - [ ] Download-only mode
-  - [ ] Bidirectional mode
-  - [ ] Mirror mode (exact replica)
-- [ ] Create `ConflictResolver` with policies
-  - [ ] LOCAL_WINS
-  - [ ] REMOTE_WINS
-  - [ ] NEWER_WINS
-  - [ ] KEEP_BOTH
-  - [ ] ASK_USER (callback)
-  - [ ] SKIP
-- [ ] Implement `SyncState` tracking
-- [ ] Add progress reporting via Flow
+- [x] Implement `SyncManager` as main orchestrator
+- [x] Create `SyncEngine` with core sync logic
+  - [x] Upload flow with checksum comparison
+  - [x] Download flow with checksum comparison
+  - [x] Full bidirectional sync
+  - [x] Delta sync (changes only)
+- [x] Implement `SyncPolicy` strategies
+  - [x] Upload-only mode
+  - [x] Download-only mode
+  - [x] Bidirectional mode
+  - [x] Mirror mode (exact replica)
+- [x] Create `ConflictResolver` with policies
+  - [x] LOCAL_WINS
+  - [x] REMOTE_WINS
+  - [x] NEWER_WINS
+  - [x] KEEP_BOTH
+  - [x] ASK_USER (callback)
+  - [x] SKIP
+- [x] Implement `SyncState` tracking
+- [x] Add progress reporting via Flow
 - [ ] Write extensive tests for sync scenarios
 
 ### Cache Layer (`cache/`)
 
-- [ ] Implement `SyncCacheManager` for metadata caching
-- [ ] Create `ChecksumCache` for hash caching
-- [ ] Define `CachePolicy` for invalidation rules
-- [ ] Add cache persistence (Room or preferences)
+- [x] Implement `SyncCache` for metadata caching
+- [x] Create manifest caching with disk persistence
+- [x] Define `CacheConfig` for invalidation rules
+- [x] Add cache persistence (JSON file-based)
 - [ ] Write cache tests
 
 ---
@@ -109,19 +109,19 @@
 
 ### Resilience Module (`resilience/`)
 
-- [ ] Implement `RetryPolicy` with exponential backoff
-- [ ] Create `NetworkMonitor` for connectivity checking
-- [ ] Implement `ErrorRecovery` strategies
+- [x] Implement `RetryPolicy` with exponential backoff
+- [x] Create `NetworkMonitor` for connectivity checking
+- [x] Implement error recovery via retry policies
 - [ ] Add operation queueing for offline support
-- [ ] Handle rate limiting gracefully
+- [x] Handle rate limiting gracefully
 - [ ] Write resilience tests
 
 ### Worker Module (`worker/`)
 
-- [ ] Implement `SyncWorker` for WorkManager
-- [ ] Create `SyncScheduler` for periodic scheduling
-- [ ] Define `WorkerConstraints` configuration
-- [ ] Add one-time sync work support
+- [x] Implement `SyncWorker` for WorkManager
+- [x] Create `SyncScheduler` for periodic scheduling
+- [x] Define `SyncScheduleConfig` configuration
+- [x] Add one-time sync work support
 - [ ] Implement sync notifications (optional)
 - [ ] Write worker tests
 
@@ -131,11 +131,11 @@
 
 ### API Module (`api/`)
 
-- [ ] Design and implement `GoogleSyncClient` interface
-- [ ] Create `SyncConfiguration` builder
-- [ ] Define `SyncResult` sealed class hierarchy
-- [ ] Implement `SyncCallback` for progress observation
-- [ ] Create `SyncOptions` for operation customization
+- [x] Design and implement `GoogleSyncClient` class
+- [x] Create `SyncClientConfigBuilder` builder
+- [x] Define `SyncResult` sealed class hierarchy
+- [x] Implement progress observation via StateFlow
+- [x] Create `SyncOptions` for operation customization
 - [ ] Add backup/restore API
   - [ ] Create ZIP backup
   - [ ] Restore from backup

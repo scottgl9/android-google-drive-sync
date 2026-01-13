@@ -151,6 +151,88 @@
 #### Dependency Injection (`di/`)
 - [x] Implemented `GoogleSyncModule` Hilt module with all singleton dependencies
 
+### 2026-01-13 - Phase 3-5: Sync Engine, Worker, API, Cache Implementation
+
+#### Sync Module (`sync/`)
+- [x] Implemented `SyncModels`:
+  - `SyncMode` - Sync operation modes (UPLOAD_ONLY, DOWNLOAD_ONLY, BIDIRECTIONAL, MIRROR_TO_CLOUD, MIRROR_FROM_CLOUD)
+  - `ConflictPolicy` - Conflict resolution strategies (LOCAL_WINS, REMOTE_WINS, NEWER_WINS, KEEP_BOTH, SKIP, ASK_USER)
+  - `SyncItem` - Represents file for sync with local/remote paths
+  - `SyncAction` - Actions to perform (UPLOAD, DOWNLOAD, DELETE_LOCAL, DELETE_REMOTE, CONFLICT, SKIP, NONE)
+  - `SyncResult` - Sealed class for sync outcomes (Success, PartialSuccess, Error, NotSignedIn, NetworkUnavailable, Cancelled)
+  - `SyncOptions` - Customizable sync options with presets
+  - `SyncConfiguration` - Client configuration data class
+  - `FileManifest` and `FileManifestEntry` - For manifest-based comparison
+- [x] Implemented `ConflictResolver`:
+  - Conflict detection and resolution
+  - Policy-based resolution strategies
+  - User callback support for ASK_USER policy
+  - Automatic rename for KEEP_BOTH policy
+- [x] Implemented `SyncEngine`:
+  - Core sync algorithm
+  - Local and remote manifest building
+  - Manifest comparison and action determination
+  - Upload, download, and delete execution
+  - Bidirectional and mirror sync support
+  - Progress tracking integration
+- [x] Implemented `SyncManager`:
+  - Main sync orchestrator
+  - Auth state verification
+  - Network policy enforcement
+  - Cancellation support
+  - Multiple sync modes (sync, uploadOnly, downloadOnly, mirrorToCloud, mirrorFromCloud)
+  - Last sync time tracking
+
+#### Worker Module (`worker/`)
+- [x] Implemented `SyncWorker`:
+  - WorkManager CoroutineWorker for background sync
+  - Support for all sync modes
+  - Progress reporting
+  - Retry logic with configurable max attempts
+  - Output data with sync statistics
+- [x] Implemented `SyncScheduler`:
+  - Periodic sync scheduling with configurable interval
+  - One-time sync requests
+  - Constraint-based scheduling (network, battery, charging)
+  - Work status observation via Flow
+  - Cancel operations
+
+#### API Module (`api/`)
+- [x] Implemented `GoogleSyncClient`:
+  - Main public entry point for the library
+  - Configuration via builder pattern
+  - Authentication methods (signIn, signOut, revokeAccess)
+  - Sync operations (sync, uploadOnly, downloadOnly, mirrorToCloud, mirrorFromCloud)
+  - Background sync scheduling
+  - Progress and state observation via StateFlow
+  - Conflict callback support
+- [x] Implemented `SyncClientConfigBuilder`:
+  - Fluent API for configuration
+  - Root folder name, sync directory, file filter settings
+  - Network and conflict policies
+  - Extension and size filtering
+
+#### Cache Module (`cache/`)
+- [x] Implemented `SyncCache`:
+  - In-memory manifest caching
+  - Disk persistence via JSON serialization
+  - Configurable cache expiration
+  - Cache statistics
+  - Cache invalidation methods
+- [x] Implemented `CacheConfig`:
+  - Maximum cache age
+  - Maximum entries
+  - Enable/disable toggle
+
+#### Updated DI Module (`di/`)
+- [x] Updated `GoogleSyncModule` with all new dependencies:
+  - ConflictResolver
+  - SyncEngine
+  - SyncManager
+  - SyncScheduler
+  - SyncCache
+  - GoogleSyncClient
+
 ---
 
 ## Milestones
@@ -166,7 +248,7 @@
 - [ ] CI/CD setup
 
 ### Milestone 2: Core Library Implementation
-**Status**: In Progress (70%)
+**Status**: Completed
 **Target**: Functional sync library
 
 - [x] Authentication module
@@ -174,16 +256,16 @@
 - [x] Local file operations
 - [x] Resilience module
 - [x] Dependency injection
-- [ ] Sync engine core
-- [ ] Conflict resolution
+- [x] Sync engine core
+- [x] Conflict resolution
 - [ ] Unit tests
 
 ### Milestone 3: Production Ready
-**Status**: Not Started
+**Status**: In Progress (60%)
 **Target**: Release-ready library
 
-- [ ] Background sync (WorkManager)
-- [ ] Public API finalization
+- [x] Background sync (WorkManager)
+- [x] Public API finalization
 - [ ] Comprehensive tests
 - [ ] Documentation
 
@@ -215,6 +297,7 @@ This library is informed by patterns from:
 |---------|------|-------------|
 | 0.0.1 | 2026-01-13 | Project initialization, documentation setup |
 | 0.0.2 | 2026-01-13 | Phase 2 core infrastructure (auth, drive, local, resilience, DI) |
+| 0.0.3 | 2026-01-13 | Phase 3-5: Sync engine, worker, public API, cache |
 
 ---
 
