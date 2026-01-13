@@ -57,6 +57,100 @@
   - TROUBLESHOOTING.md with common issues and solutions
 - [x] Created detekt.yml for code quality configuration
 
+### 2026-01-13 - Phase 2: Core Infrastructure Implementation
+
+#### Authentication Module (`auth/`)
+- [x] Implemented `AuthState` sealed class with states: NotSignedIn, SigningIn, SignedIn, Error, PermissionRequired
+- [x] Implemented `AuthResult` sealed class for auth operations
+- [x] Implemented `AuthConfig` data class for configurable auth options
+- [x] Implemented `GoogleAuthManager` with:
+  - Google Sign-In integration
+  - OAuth2 token management
+  - Observable auth state via StateFlow
+  - Sign-out and revoke access support
+  - Drive service creation
+
+#### Drive Operations Module (`drive/`)
+- [x] Implemented `DriveModels`:
+  - `DriveFile` - File metadata with checksum support
+  - `DriveFolder` - Folder metadata
+  - `DriveBackupFile` - Backup file metadata
+  - `DriveOperationResult<T>` - Type-safe sealed result class
+  - `UploadResult`, `DownloadResult` - Operation results
+  - `FileListQuery`, `FileListPage` - Pagination support
+  - `FolderCache` - Folder ID caching
+- [x] Implemented `DriveFileOperations`:
+  - Upload file (create/update)
+  - Download file
+  - Delete file
+  - List files with pagination
+  - Find file by name
+  - Get file metadata
+- [x] Implemented `DriveFolderManager`:
+  - Create folder
+  - Find folder by name
+  - Find or create folder
+  - Ensure sync folder structure
+  - Ensure nested folder paths
+  - List subfolders
+  - Delete folder
+- [x] Implemented `DriveService` as high-level coordinator:
+  - Automatic auth handling
+  - Lazy Drive service creation
+  - Folder structure management
+  - File and backup operations
+
+#### Local File Module (`local/`)
+- [x] Implemented `ChecksumAlgorithm` enum (MD5, SHA256)
+- [x] Implemented `FileHasher`:
+  - Calculate hash for files, streams, and byte arrays
+  - Verify checksums
+  - Create/parse hashed filenames
+- [x] Implemented `FileFilter` sealed class:
+  - Extension filtering (include/exclude)
+  - Size filtering (min/max)
+  - Glob pattern matching
+  - Regex pattern matching
+  - Hidden file filtering
+  - Path prefix filtering
+  - Custom predicates
+  - Composite filters (and/or)
+  - Default sync filter
+- [x] Implemented `LocalFileInfo` data class
+- [x] Implemented `LocalFileManager`:
+  - List files recursively
+  - List files with checksums
+  - Get file info
+  - Ensure directories
+  - Copy, read, write files
+  - Delete files/directories
+  - Create temp files/directories
+  - Get directory size/count
+  - Clean old files
+
+#### Resilience Module (`resilience/`)
+- [x] Implemented `RetryPolicy`:
+  - Configurable max attempts, delays, backoff
+  - Default, aggressive, minimal, none presets
+  - Custom retry predicates
+  - Rate limit handling
+- [x] Implemented `withRetry()` suspend function
+- [x] Implemented `NetworkMonitor`:
+  - Real-time network state observation
+  - Network policy checking (ANY, UNMETERED_ONLY, WIFI_ONLY, NOT_ROAMING)
+  - Wait for network Flow
+- [x] Implemented `SyncProgress` data class
+- [x] Implemented `SyncPhase` enum
+- [x] Implemented `SyncProgressManager`:
+  - Progress tracking via StateFlow
+  - File-level progress updates
+  - Progress persistence for resume
+  - Database checksum caching
+  - Last sync timestamp tracking
+
+#### Dependency Injection (`di/`)
+- [x] Implemented `GoogleSyncModule` Hilt module with all singleton dependencies
+
 ---
 
 ## Milestones
@@ -72,21 +166,23 @@
 - [ ] CI/CD setup
 
 ### Milestone 2: Core Library Implementation
-**Status**: Not Started
+**Status**: In Progress (70%)
 **Target**: Functional sync library
 
-- [ ] Authentication module
-- [ ] Drive operations module
-- [ ] Local file operations
+- [x] Authentication module
+- [x] Drive operations module
+- [x] Local file operations
+- [x] Resilience module
+- [x] Dependency injection
 - [ ] Sync engine core
 - [ ] Conflict resolution
+- [ ] Unit tests
 
 ### Milestone 3: Production Ready
 **Status**: Not Started
 **Target**: Release-ready library
 
 - [ ] Background sync (WorkManager)
-- [ ] Resilience & error handling
 - [ ] Public API finalization
 - [ ] Comprehensive tests
 - [ ] Documentation
@@ -118,6 +214,7 @@ This library is informed by patterns from:
 | Version | Date | Description |
 |---------|------|-------------|
 | 0.0.1 | 2026-01-13 | Project initialization, documentation setup |
+| 0.0.2 | 2026-01-13 | Phase 2 core infrastructure (auth, drive, local, resilience, DI) |
 
 ---
 
