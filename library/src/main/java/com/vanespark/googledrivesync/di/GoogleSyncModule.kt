@@ -13,6 +13,7 @@ import com.vanespark.googledrivesync.crypto.PassphraseBasedCrypto
 import com.vanespark.googledrivesync.drive.DriveFileOperations
 import com.vanespark.googledrivesync.drive.DriveFolderManager
 import com.vanespark.googledrivesync.drive.DriveService
+import com.vanespark.googledrivesync.local.DatabaseBackupHelper
 import com.vanespark.googledrivesync.local.FileHasher
 import com.vanespark.googledrivesync.local.LocalFileManager
 import com.vanespark.googledrivesync.resilience.NetworkMonitor
@@ -76,6 +77,12 @@ object GoogleSyncModule {
         @ApplicationContext context: Context,
         fileHasher: FileHasher
     ): LocalFileManager = LocalFileManager(context, fileHasher)
+
+    @Provides
+    @Singleton
+    fun provideDatabaseBackupHelper(
+        @ApplicationContext context: Context
+    ): DatabaseBackupHelper = DatabaseBackupHelper(context)
 
     // ========== Resilience ==========
 
