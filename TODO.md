@@ -11,7 +11,7 @@
 - [x] Set up Hilt dependency injection
 - [x] Configure detekt for code quality
 - [x] Create .gitignore with appropriate rules
-- [ ] Set up GitHub Actions CI pipeline
+- [x] Set up GitHub Actions CI pipeline
 - [x] Configure library publishing (Maven)
 
 ---
