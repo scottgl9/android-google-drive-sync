@@ -293,4 +293,11 @@ class SyncManager @Inject constructor(
      * Clear any resumable sync state
      */
     fun clearResumableSync() = progressManager.clearPersistedProgress()
+
+    /**
+     * Get the configured sync directory
+     *
+     * @return Sync directory or null if not configured
+     */
+    fun getSyncDirectory(): File? = configuration?.syncDirectory
 }

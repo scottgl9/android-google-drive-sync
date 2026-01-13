@@ -3,13 +3,19 @@ package com.vanespark.googledrivesync.di
 import android.content.Context
 import com.vanespark.googledrivesync.api.GoogleSyncClient
 import com.vanespark.googledrivesync.auth.GoogleAuthManager
+import com.vanespark.googledrivesync.backup.BackupManager
+import com.vanespark.googledrivesync.backup.RestoreManager
 import com.vanespark.googledrivesync.cache.SyncCache
+import com.vanespark.googledrivesync.crypto.CryptoManager
+import com.vanespark.googledrivesync.crypto.EncryptionManager
+import com.vanespark.googledrivesync.crypto.PassphraseBasedCrypto
 import com.vanespark.googledrivesync.drive.DriveFileOperations
 import com.vanespark.googledrivesync.drive.DriveFolderManager
 import com.vanespark.googledrivesync.drive.DriveService
 import com.vanespark.googledrivesync.local.FileHasher
 import com.vanespark.googledrivesync.local.LocalFileManager
 import com.vanespark.googledrivesync.resilience.NetworkMonitor
+import com.vanespark.googledrivesync.resilience.RateLimitHandler
 import com.vanespark.googledrivesync.resilience.SyncProgressManager
 import com.vanespark.googledrivesync.sync.ConflictResolver
 import com.vanespark.googledrivesync.sync.SyncEngine
@@ -85,6 +91,10 @@ object GoogleSyncModule {
         @ApplicationContext context: Context
     ): SyncProgressManager = SyncProgressManager(context)
 
+    @Provides
+    @Singleton
+    fun provideRateLimitHandler(): RateLimitHandler = RateLimitHandler()
+
     // ========== Cache ==========
 
     @Provides
@@ -92,6 +102,42 @@ object GoogleSyncModule {
     fun provideSyncCache(
         @ApplicationContext context: Context
     ): SyncCache = SyncCache(context)
+
+    // ========== Crypto ==========
+
+    @Provides
+    @Singleton
+    fun providePassphraseBasedCrypto(): PassphraseBasedCrypto = PassphraseBasedCrypto()
+
+    @Provides
+    @Singleton
+    fun provideCryptoManager(): CryptoManager = CryptoManager()
+
+    @Provides
+    @Singleton
+    fun provideEncryptionManager(
+        passphraseBasedCrypto: PassphraseBasedCrypto,
+        cryptoManager: CryptoManager
+    ): EncryptionManager = EncryptionManager(passphraseBasedCrypto, cryptoManager)
+
+    // ========== Backup ==========
+
+    @Provides
+    @Singleton
+    fun provideBackupManager(
+        @ApplicationContext context: Context,
+        encryptionManager: EncryptionManager,
+        fileHasher: FileHasher,
+        localFileManager: LocalFileManager
+    ): BackupManager = BackupManager(context, encryptionManager, fileHasher, localFileManager)
+
+    @Provides
+    @Singleton
+    fun provideRestoreManager(
+        @ApplicationContext context: Context,
+        encryptionManager: EncryptionManager,
+        fileHasher: FileHasher
+    ): RestoreManager = RestoreManager(context, encryptionManager, fileHasher)
 
     // ========== Sync Engine ==========
 
@@ -153,11 +199,17 @@ object GoogleSyncModule {
         authManager: GoogleAuthManager,
         syncManager: SyncManager,
         syncScheduler: SyncScheduler,
-        conflictResolver: ConflictResolver
+        conflictResolver: ConflictResolver,
+        backupManager: BackupManager,
+        restoreManager: RestoreManager,
+        encryptionManager: EncryptionManager
     ): GoogleSyncClient = GoogleSyncClient(
         authManager,
         syncManager,
         syncScheduler,
-        conflictResolver
+        conflictResolver,
+        backupManager,
+        restoreManager,
+        encryptionManager
     )
 }

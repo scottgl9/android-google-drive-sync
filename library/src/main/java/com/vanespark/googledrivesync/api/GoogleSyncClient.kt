@@ -5,6 +5,20 @@ import android.content.Intent
 import com.vanespark.googledrivesync.auth.AuthResult
 import com.vanespark.googledrivesync.auth.AuthState
 import com.vanespark.googledrivesync.auth.GoogleAuthManager
+import com.vanespark.googledrivesync.backup.BackupConfig
+import com.vanespark.googledrivesync.backup.BackupInfo
+import com.vanespark.googledrivesync.backup.BackupManager
+import com.vanespark.googledrivesync.backup.BackupPeekInfo
+import com.vanespark.googledrivesync.backup.BackupResult
+import com.vanespark.googledrivesync.backup.PeekResult
+import com.vanespark.googledrivesync.backup.RestoreConfig
+import com.vanespark.googledrivesync.backup.RestoreInfo
+import com.vanespark.googledrivesync.backup.RestoreManager
+import com.vanespark.googledrivesync.backup.RestoreResult
+import com.vanespark.googledrivesync.crypto.EncryptionConfig
+import com.vanespark.googledrivesync.crypto.EncryptionManager
+import com.vanespark.googledrivesync.crypto.EncryptionType
+import com.vanespark.googledrivesync.crypto.PassphraseStrength
 import com.vanespark.googledrivesync.local.FileFilter
 import com.vanespark.googledrivesync.resilience.NetworkPolicy
 import com.vanespark.googledrivesync.resilience.SyncProgress
@@ -67,7 +81,10 @@ class GoogleSyncClient @Inject constructor(
     private val authManager: GoogleAuthManager,
     private val syncManager: SyncManager,
     private val syncScheduler: SyncScheduler,
-    private val conflictResolver: ConflictResolver
+    private val conflictResolver: ConflictResolver,
+    private val backupManager: BackupManager,
+    private val restoreManager: RestoreManager,
+    private val encryptionManager: EncryptionManager
 ) {
     private var isConfigured = false
 
@@ -233,6 +250,18 @@ class GoogleSyncClient @Inject constructor(
      */
     fun getLastSyncTime(): Long? = syncManager.getLastSyncTime()
 
+    // ========== Resume Capability ==========
+
+    /**
+     * Check if there is a resumable sync in progress.
+     */
+    fun hasResumableSync(): Boolean = syncManager.hasResumableSync()
+
+    /**
+     * Clear any resumable sync state.
+     */
+    fun clearResumableSync() = syncManager.clearResumableSync()
+
     // ========== Sync History ==========
 
     /**
@@ -322,6 +351,187 @@ class GoogleSyncClient @Inject constructor(
      */
     fun observeSyncRequestStatus(): Flow<SyncWorkStatus> =
         syncScheduler.observeOneTimeSyncStatus()
+
+    // ========== Backup & Restore ==========
+
+    /**
+     * Create a backup of the sync directory.
+     *
+     * @param outputFile Output file for the backup (or null for default location)
+     * @param passphrase Passphrase for encryption (null for no encryption, or use device keystore)
+     * @param useDeviceKeystore Use device keystore encryption (device-specific, not portable)
+     * @return Backup result with info or error
+     */
+    suspend fun createBackup(
+        outputFile: File? = null,
+        passphrase: String? = null,
+        useDeviceKeystore: Boolean = false
+    ): BackupResult {
+        checkConfigured()
+        val syncDirectory = syncManager.getSyncDirectory()
+            ?: return BackupResult.Error("Sync directory not configured")
+
+        val encryption = when {
+            passphrase != null -> EncryptionConfig.passphrase(passphrase)
+            useDeviceKeystore -> EncryptionConfig.deviceKeystore()
+            else -> EncryptionConfig.none()
+        }
+
+        val config = BackupConfig(
+            encryption = encryption,
+            includeChecksums = true,
+            allowEmptyBackup = false
+        )
+
+        return backupManager.createBackup(syncDirectory, outputFile, config)
+    }
+
+    /**
+     * Create a backup with custom configuration.
+     *
+     * @param config Backup configuration
+     * @param outputFile Output file for the backup (or null for default location)
+     * @return Backup result with info or error
+     */
+    suspend fun createBackup(
+        config: BackupConfig,
+        outputFile: File? = null
+    ): BackupResult {
+        checkConfigured()
+        val syncDirectory = syncManager.getSyncDirectory()
+            ?: return BackupResult.Error("Sync directory not configured")
+
+        return backupManager.createBackup(syncDirectory, outputFile, config)
+    }
+
+    /**
+     * Restore a backup to the sync directory.
+     *
+     * @param backupFile Backup file to restore
+     * @param passphrase Passphrase for encrypted backups (optional)
+     * @return Restore result with info or error
+     */
+    suspend fun restoreBackup(
+        backupFile: File,
+        passphrase: String? = null
+    ): RestoreResult {
+        checkConfigured()
+        val syncDirectory = syncManager.getSyncDirectory()
+            ?: return RestoreResult.Error("Sync directory not configured")
+
+        return restoreManager.restoreBackup(backupFile, syncDirectory, passphrase)
+    }
+
+    /**
+     * Restore a backup with custom configuration.
+     *
+     * @param backupFile Backup file to restore
+     * @param passphrase Passphrase for encrypted backups (optional)
+     * @param config Restore configuration
+     * @return Restore result with info or error
+     */
+    suspend fun restoreBackup(
+        backupFile: File,
+        passphrase: String? = null,
+        config: RestoreConfig
+    ): RestoreResult {
+        checkConfigured()
+        val syncDirectory = syncManager.getSyncDirectory()
+            ?: return RestoreResult.Error("Sync directory not configured")
+
+        return restoreManager.restoreBackup(backupFile, syncDirectory, passphrase, config)
+    }
+
+    /**
+     * Peek at a backup to get info without restoring.
+     *
+     * @param backupFile Backup file to inspect
+     * @param passphrase Passphrase for encrypted backups (optional)
+     * @return Peek result with backup info or error
+     */
+    suspend fun peekBackup(
+        backupFile: File,
+        passphrase: String? = null
+    ): PeekResult = restoreManager.peekBackup(backupFile, passphrase)
+
+    /**
+     * List existing backup files.
+     *
+     * @param backupDirectory Directory to search (or null for default)
+     * @return List of backup files sorted by date (newest first)
+     */
+    fun listBackups(backupDirectory: File? = null): List<File> =
+        backupManager.listBackups(backupDirectory)
+
+    /**
+     * Delete old backups, keeping only the most recent ones.
+     *
+     * @param keepCount Number of backups to keep
+     * @param backupDirectory Directory to clean (or null for default)
+     * @return Number of backups deleted
+     */
+    fun cleanupOldBackups(keepCount: Int = 5, backupDirectory: File? = null): Int =
+        backupManager.cleanupOldBackups(keepCount, backupDirectory)
+
+    /**
+     * Estimate the size of a backup.
+     *
+     * @return Estimated backup size in bytes, or null if not configured
+     */
+    suspend fun estimateBackupSize(): Long? {
+        val syncDirectory = syncManager.getSyncDirectory() ?: return null
+        return backupManager.estimateBackupSize(syncDirectory)
+    }
+
+    /**
+     * Check if there's enough disk space for a backup.
+     *
+     * @return true if sufficient space available, false if not, null if not configured
+     */
+    suspend fun hasSufficientSpaceForBackup(): Boolean? {
+        val syncDirectory = syncManager.getSyncDirectory() ?: return null
+        return backupManager.hasSufficientDiskSpace(syncDirectory)
+    }
+
+    // ========== Encryption ==========
+
+    /**
+     * Validate a passphrase for encryption.
+     *
+     * @param passphrase Passphrase to validate
+     * @return true if valid, false if weak
+     */
+    fun isPassphraseValid(passphrase: String): Boolean {
+        return try {
+            encryptionManager.validatePassphrase(passphrase)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Estimate passphrase strength.
+     *
+     * @param passphrase Passphrase to evaluate
+     * @return Strength level
+     */
+    fun estimatePassphraseStrength(passphrase: String): PassphraseStrength =
+        encryptionManager.estimatePassphraseStrength(passphrase)
+
+    /**
+     * Detect the encryption type of a file.
+     *
+     * @param file File to check
+     * @return Encryption type
+     */
+    fun detectEncryptionType(file: File): EncryptionType =
+        encryptionManager.detectEncryptionType(file)
+
+    /**
+     * Check if device keystore encryption key exists.
+     */
+    fun hasDeviceEncryptionKey(): Boolean = encryptionManager.hasDeviceKey()
 
     // ========== Helpers ==========
 

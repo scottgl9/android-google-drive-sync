@@ -8,6 +8,13 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
+// Extension to check if exception is rate limiting
+private fun Throwable.isRateLimitException(): Boolean {
+    return this is RateLimitException ||
+        message?.contains("429") == true ||
+        message?.lowercase()?.contains("rate limit") == true
+}
+
 /**
  * Configuration for retry behavior
  */
@@ -147,11 +154,17 @@ suspend fun <T> withRetry(
             val shouldRetry = policy.shouldRetry(e) && !isLastAttempt
 
             if (shouldRetry) {
-                // Check for rate limiting - use longer delay
-                val delay = if (e.message?.contains("429") == true) {
-                    Constants.RATE_LIMIT_DELAY_MS.milliseconds
-                } else {
-                    policy.calculateDelay(attempt + 1)
+                // Check for rate limiting - use appropriate delay
+                val delay = when {
+                    e is RateLimitException -> {
+                        e.getRetryDelay()
+                    }
+                    e.isRateLimitException() -> {
+                        Constants.RATE_LIMIT_DELAY_MS.milliseconds
+                    }
+                    else -> {
+                        policy.calculateDelay(attempt + 1)
+                    }
                 }
 
                 Log.w(

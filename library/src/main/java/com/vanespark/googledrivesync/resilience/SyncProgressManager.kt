@@ -7,6 +7,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -367,11 +370,179 @@ class SyncProgressManager @Inject constructor(
         return if (timestamp == -1L) null else timestamp
     }
 
+    // ========== Enhanced Resume Support ==========
+
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
+
+    /**
+     * Save complete sync state for resume
+     */
+    fun saveResumeState(
+        pendingFiles: List<String>,
+        syncMode: String,
+        rootFolder: String
+    ) {
+        val resumeInfo = ResumeInfo(
+            timestamp = System.currentTimeMillis(),
+            syncMode = syncMode,
+            rootFolder = rootFolder,
+            pendingFiles = pendingFiles,
+            completedFiles = getSyncedFiles().toList(),
+            totalFiles = _progress.value.totalFiles,
+            bytesTransferred = _progress.value.bytesTransferred,
+            totalBytes = _progress.value.totalBytes
+        )
+
+        try {
+            val jsonString = json.encodeToString(resumeInfo)
+            prefs.edit()
+                .putString(KEY_RESUME_INFO, jsonString)
+                .putBoolean(KEY_IN_PROGRESS, true)
+                .putLong(KEY_TIMESTAMP, System.currentTimeMillis())
+                .apply()
+            Log.d(Constants.TAG, "Saved resume state: ${pendingFiles.size} pending files")
+        } catch (e: Exception) {
+            Log.e(Constants.TAG, "Failed to save resume state", e)
+        }
+    }
+
+    /**
+     * Load resume state if available
+     */
+    fun loadResumeState(): ResumeInfo? {
+        if (!hasResumableProgress()) return null
+
+        val jsonString = prefs.getString(KEY_RESUME_INFO, null) ?: return null
+
+        return try {
+            json.decodeFromString<ResumeInfo>(jsonString)
+        } catch (e: Exception) {
+            Log.e(Constants.TAG, "Failed to load resume state", e)
+            clearPersistedProgress()
+            null
+        }
+    }
+
+    /**
+     * Check if file has already been synced in current/resumable session
+     */
+    fun isFileSynced(fileName: String): Boolean {
+        return getSyncedFiles().contains(fileName)
+    }
+
+    /**
+     * Get count of remaining files to sync (for resume)
+     */
+    fun getRemainingFilesCount(): Int {
+        val resumeInfo = loadResumeState() ?: return 0
+        return resumeInfo.pendingFiles.size
+    }
+
+    /**
+     * Get resume progress percentage
+     */
+    fun getResumeProgress(): Int {
+        val resumeInfo = loadResumeState() ?: return 0
+        val completed = resumeInfo.completedFiles.size
+        val total = resumeInfo.totalFiles
+        return if (total > 0) (completed * 100 / total) else 0
+    }
+
+    /**
+     * Update pending files (remove completed ones)
+     */
+    fun updatePendingFiles(completedFile: String) {
+        val resumeInfo = loadResumeState() ?: return
+
+        val updatedPending = resumeInfo.pendingFiles.filterNot { it == completedFile }
+        val updatedCompleted = resumeInfo.completedFiles + completedFile
+
+        val updatedInfo = resumeInfo.copy(
+            pendingFiles = updatedPending,
+            completedFiles = updatedCompleted,
+            timestamp = System.currentTimeMillis()
+        )
+
+        try {
+            val jsonString = json.encodeToString(updatedInfo)
+            prefs.edit()
+                .putString(KEY_RESUME_INFO, jsonString)
+                .putLong(KEY_TIMESTAMP, System.currentTimeMillis())
+                .apply()
+        } catch (e: Exception) {
+            Log.e(Constants.TAG, "Failed to update pending files", e)
+        }
+    }
+
     companion object {
         private const val KEY_IN_PROGRESS = "sync_in_progress"
         private const val KEY_TIMESTAMP = "sync_timestamp"
         private const val KEY_SYNCED_FILES = "synced_files"
         private const val KEY_LAST_DB_CHECKSUM = "last_db_checksum"
         private const val KEY_LAST_SYNC_TIME = "last_sync_time"
+        private const val KEY_RESUME_INFO = "resume_info"
+    }
+}
+
+/**
+ * Information needed to resume an interrupted sync
+ */
+@Serializable
+data class ResumeInfo(
+    /**
+     * Timestamp when sync was interrupted
+     */
+    val timestamp: Long,
+
+    /**
+     * Sync mode (BIDIRECTIONAL, UPLOAD_ONLY, etc.)
+     */
+    val syncMode: String,
+
+    /**
+     * Root folder name on Drive
+     */
+    val rootFolder: String,
+
+    /**
+     * Files still pending to be synced
+     */
+    val pendingFiles: List<String>,
+
+    /**
+     * Files that have been successfully synced
+     */
+    val completedFiles: List<String>,
+
+    /**
+     * Total number of files in sync operation
+     */
+    val totalFiles: Int,
+
+    /**
+     * Bytes transferred so far
+     */
+    val bytesTransferred: Long,
+
+    /**
+     * Total bytes to transfer
+     */
+    val totalBytes: Long
+) {
+    /**
+     * Progress percentage
+     */
+    val progressPercent: Int
+        get() = if (totalFiles > 0) (completedFiles.size * 100 / totalFiles) else 0
+
+    /**
+     * Whether this resume info is still valid
+     */
+    fun isValid(timeoutMs: Long = Constants.SYNC_RESUME_TIMEOUT_MS): Boolean {
+        val age = System.currentTimeMillis() - timestamp
+        return age < timeoutMs && pendingFiles.isNotEmpty()
     }
 }
