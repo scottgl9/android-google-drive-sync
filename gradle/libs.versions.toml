@@ -30,7 +30,7 @@ hilt-work = "1.2.0"
 
 # Google Services
 play-services-auth = "21.2.0"
-google-api-client = "2.6.0"
+google-api-client = "2.8.1"
 google-api-services-drive = "v3-rev20240521-2.0.0"
 
 # Testing
