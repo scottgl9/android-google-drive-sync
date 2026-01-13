@@ -44,6 +44,7 @@ enum class SyncHistoryStatus {
     PARTIAL_SUCCESS,
     FAILED,
     CANCELLED,
+    PAUSED,
     NOT_SIGNED_IN,
     NETWORK_UNAVAILABLE
 }
@@ -119,6 +120,12 @@ class SyncHistoryManager @Inject constructor(
                 mode = mode.name,
                 status = SyncHistoryStatus.NETWORK_UNAVAILABLE,
                 errorMessage = "Network unavailable"
+            )
+            SyncResult.Paused -> SyncHistoryEntry(
+                id = generateId(),
+                timestampMs = System.currentTimeMillis(),
+                mode = mode.name,
+                status = SyncHistoryStatus.PAUSED
             )
         }
 

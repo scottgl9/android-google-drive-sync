@@ -114,6 +114,15 @@ class SyncWorker @AssistedInject constructor(
                             .build()
                     )
                 }
+
+                SyncResult.Paused -> {
+                    Log.d(Constants.TAG, "SyncWorker: paused")
+                    Result.failure(
+                        Data.Builder()
+                            .putString(KEY_ERROR_MESSAGE, "Paused")
+                            .build()
+                    )
+                }
             }
         } catch (e: Exception) {
             Log.e(Constants.TAG, "SyncWorker exception", e)

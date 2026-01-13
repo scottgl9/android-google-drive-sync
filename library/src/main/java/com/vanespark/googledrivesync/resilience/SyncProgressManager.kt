@@ -92,7 +92,9 @@ data class SyncProgress(
      * Whether sync is currently active
      */
     val isActive: Boolean
-        get() = phase != SyncPhase.IDLE && phase != SyncPhase.COMPLETED && phase != SyncPhase.FAILED
+        get() = phase != SyncPhase.IDLE && phase != SyncPhase.COMPLETED &&
+                phase != SyncPhase.FAILED && phase != SyncPhase.PAUSED &&
+                phase != SyncPhase.CANCELLED
 
     /**
      * Duration in milliseconds
@@ -116,7 +118,8 @@ enum class SyncPhase {
     CLEANING_UP,
     COMPLETED,
     FAILED,
-    CANCELLED
+    CANCELLED,
+    PAUSED
 }
 
 /**
@@ -284,6 +287,34 @@ class SyncProgressManager @Inject constructor(
         // Keep persisted progress for potential resume
         Log.d(Constants.TAG, "Sync cancelled")
     }
+
+    /**
+     * Pause the sync (keeps state for resume)
+     */
+    fun pauseSync() {
+        val currentPhase = _progress.value.phase
+        // Only pause if actively syncing
+        if (currentPhase in listOf(
+                SyncPhase.UPLOADING,
+                SyncPhase.DOWNLOADING,
+                SyncPhase.SCANNING_LOCAL,
+                SyncPhase.SCANNING_REMOTE,
+                SyncPhase.COMPARING
+            )
+        ) {
+            _progress.value = _progress.value.copy(
+                phase = SyncPhase.PAUSED,
+                lastUpdateTime = System.currentTimeMillis()
+            )
+            saveProgress()
+            Log.d(Constants.TAG, "Sync paused at ${_progress.value.processedFiles}/${_progress.value.totalFiles} files")
+        }
+    }
+
+    /**
+     * Check if sync is paused
+     */
+    fun isPaused(): Boolean = _progress.value.phase == SyncPhase.PAUSED
 
     /**
      * Reset progress to idle state

@@ -259,6 +259,11 @@ sealed class SyncResult {
      * Sync was cancelled
      */
     object Cancelled : SyncResult()
+
+    /**
+     * Sync was paused (can be resumed)
+     */
+    object Paused : SyncResult()
 }
 
 /**

@@ -217,7 +217,7 @@
 - [x] Progress timeout monitoring
 - [x] Compression before upload
 - [ ] Bandwidth throttling
-- [ ] Sync pause/resume
+- [x] Sync pause/resume
 - [ ] Sync queue with priority
 
 ### Platform Support

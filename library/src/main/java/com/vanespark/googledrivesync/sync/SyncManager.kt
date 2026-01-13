@@ -9,6 +9,7 @@ import com.vanespark.googledrivesync.resilience.RetryPolicy
 import com.vanespark.googledrivesync.resilience.SyncPhase
 import com.vanespark.googledrivesync.resilience.SyncProgress
 import com.vanespark.googledrivesync.resilience.SyncProgressManager
+import com.vanespark.googledrivesync.resilience.ResumeInfo
 import com.vanespark.googledrivesync.util.Constants
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -83,6 +84,12 @@ class SyncManager @Inject constructor(
      * Whether a sync is currently in progress
      */
     val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
+
+    private val _isPaused = MutableStateFlow(false)
+    /**
+     * Whether the sync is currently paused
+     */
+    val isPaused: StateFlow<Boolean> = _isPaused.asStateFlow()
 
     /**
      * Current sync progress
@@ -187,7 +194,160 @@ class SyncManager @Inject constructor(
         currentSyncJob?.cancel()
         progressManager.cancelSync()
         _isSyncing.value = false
+        _isPaused.value = false
         Log.d(Constants.TAG, "Sync cancelled")
+    }
+
+    /**
+     * Pause the current sync operation.
+     * The sync can be resumed later with [resume].
+     */
+    fun pause() {
+        if (!_isSyncing.value) {
+            Log.w(Constants.TAG, "No sync in progress to pause")
+            return
+        }
+
+        if (_isPaused.value) {
+            Log.w(Constants.TAG, "Sync already paused")
+            return
+        }
+
+        currentSyncJob?.cancel()
+        progressManager.pauseSync()
+        _isPaused.value = true
+        _isSyncing.value = false
+        Log.d(Constants.TAG, "Sync paused")
+    }
+
+    /**
+     * Resume a paused sync operation.
+     *
+     * @return Sync result
+     */
+    @Suppress("ReturnCount")
+    suspend fun resume(): SyncResult {
+        val config = configuration ?: run {
+            Log.e(Constants.TAG, "SyncManager not configured")
+            return SyncResult.Error("SyncManager not configured. Call configure() first.")
+        }
+
+        if (!progressManager.hasResumableProgress()) {
+            Log.w(Constants.TAG, "No resumable sync found")
+            return SyncResult.Error("No resumable sync found")
+        }
+
+        val resumeInfo = progressManager.loadResumeState()
+        if (resumeInfo == null || !resumeInfo.isValid()) {
+            Log.w(Constants.TAG, "Resume info expired or invalid")
+            progressManager.clearPersistedProgress()
+            return SyncResult.Error("Resume info expired or invalid")
+        }
+
+        // Check authentication
+        if (!authManager.isSignedIn()) {
+            Log.w(Constants.TAG, "Not signed in")
+            return SyncResult.NotSignedIn
+        }
+
+        // Check network
+        if (!networkMonitor.meetsPolicy(config.networkPolicy)) {
+            Log.w(Constants.TAG, "Network does not meet policy: ${config.networkPolicy}")
+            return SyncResult.NetworkUnavailable
+        }
+
+        _isPaused.value = false
+        _isSyncing.value = true
+
+        Log.d(
+            Constants.TAG,
+            "Resuming sync: ${resumeInfo.pendingFiles.size} pending, " +
+                "${resumeInfo.completedFiles.size} completed"
+        )
+
+        try {
+            // Parse the sync mode from resume info
+            val syncMode = try {
+                SyncMode.valueOf(resumeInfo.syncMode)
+            } catch (e: IllegalArgumentException) {
+                Log.w(Constants.TAG, "Unknown sync mode '${resumeInfo.syncMode}', using BIDIRECTIONAL", e)
+                SyncMode.BIDIRECTIONAL
+            }
+
+            val options = SyncOptions(mode = syncMode)
+
+            // Update progress state for resume
+            progressManager.startSync(resumeInfo.totalFiles, resumeInfo.totalBytes)
+            progressManager.updatePhase(SyncPhase.UPLOADING)
+
+            val result = executeResumeInternal(config, options, resumeInfo)
+            historyManager.recordSync(result, syncMode)
+            return result
+        } finally {
+            _isSyncing.value = false
+        }
+    }
+
+    /**
+     * Internal resume execution
+     */
+    private suspend fun executeResumeInternal(
+        config: SyncConfiguration,
+        options: SyncOptions,
+        resumeInfo: ResumeInfo
+    ): SyncResult = coroutineScope {
+        try {
+            currentSyncJob = launch {
+                // Build sync items from pending files
+                val localManifest = syncEngine.buildLocalManifest(
+                    syncDirectory = config.syncDirectory,
+                    filter = config.fileFilter
+                )
+                val remoteManifest = syncEngine.buildRemoteManifest(config.rootFolderName)
+
+                // Get only pending items
+                val allSyncItems = syncEngine.compareManifests(localManifest, remoteManifest, options)
+                val pendingItems = allSyncItems.filter { item ->
+                    resumeInfo.pendingFiles.contains(item.relativePath)
+                }
+
+                Log.d(Constants.TAG, "Resuming with ${pendingItems.size} pending items")
+
+                syncEngine.executeSyncPlan(
+                    syncItems = pendingItems,
+                    syncDirectory = config.syncDirectory,
+                    rootFolderName = config.rootFolderName,
+                    options = options,
+                    retryPolicy = config.retryPolicy
+                )
+            }
+
+            currentSyncJob?.join()
+
+            val finalProgress = progressManager.progress.value
+            when (finalProgress.phase) {
+                SyncPhase.COMPLETED -> {
+                    SyncResult.Success(
+                        filesUploaded = finalProgress.uploadedFiles,
+                        filesDownloaded = finalProgress.downloadedFiles,
+                        filesDeleted = 0,
+                        filesSkipped = finalProgress.skippedFiles,
+                        conflicts = emptyList(),
+                        duration = finalProgress.durationMs.milliseconds,
+                        bytesTransferred = finalProgress.bytesTransferred
+                    )
+                }
+                SyncPhase.CANCELLED -> SyncResult.Cancelled
+                SyncPhase.PAUSED -> SyncResult.Paused
+                SyncPhase.FAILED -> SyncResult.Error(finalProgress.error ?: "Resume failed")
+                else -> SyncResult.Error("Unexpected sync state: ${finalProgress.phase}")
+            }
+        } catch (e: CancellationException) {
+            if (_isPaused.value) SyncResult.Paused else SyncResult.Cancelled
+        } catch (e: Exception) {
+            Log.e(Constants.TAG, "Resume failed", e)
+            SyncResult.Error(e.message ?: "Resume failed", e)
+        }
     }
 
     /**
