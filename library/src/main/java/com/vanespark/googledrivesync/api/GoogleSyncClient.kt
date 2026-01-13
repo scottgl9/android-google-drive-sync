@@ -233,6 +233,23 @@ class GoogleSyncClient @Inject constructor(
      */
     fun getLastSyncTime(): Long? = syncManager.getLastSyncTime()
 
+    // ========== Sync History ==========
+
+    /**
+     * Observable sync history.
+     */
+    val syncHistory = syncManager.history
+
+    /**
+     * Get sync statistics.
+     */
+    fun getSyncStatistics() = syncManager.getStatistics()
+
+    /**
+     * Clear sync history.
+     */
+    fun clearSyncHistory() = syncManager.clearHistory()
+
     // ========== Background Sync ==========
 
     /**

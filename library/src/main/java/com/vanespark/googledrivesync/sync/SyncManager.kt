@@ -72,7 +72,8 @@ class SyncManager @Inject constructor(
     private val authManager: GoogleAuthManager,
     private val syncEngine: SyncEngine,
     private val networkMonitor: NetworkMonitor,
-    private val progressManager: SyncProgressManager
+    private val progressManager: SyncProgressManager,
+    private val historyManager: SyncHistoryManager
 ) {
     private var configuration: SyncConfiguration? = null
     private var currentSyncJob: Job? = null
@@ -135,11 +136,29 @@ class SyncManager @Inject constructor(
         progressManager.updatePhase(SyncPhase.PREPARING)
 
         try {
-            return executeSyncInternal(config, syncOptions)
+            val result = executeSyncInternal(config, syncOptions)
+            // Record in history
+            historyManager.recordSync(result, syncOptions.mode)
+            return result
         } finally {
             _isSyncing.value = false
         }
     }
+
+    /**
+     * Get sync history
+     */
+    val history = historyManager.history
+
+    /**
+     * Get sync statistics
+     */
+    fun getStatistics(): SyncStatistics = historyManager.getStatistics()
+
+    /**
+     * Clear sync history
+     */
+    fun clearHistory() = historyManager.clearHistory()
 
     /**
      * Perform upload-only sync

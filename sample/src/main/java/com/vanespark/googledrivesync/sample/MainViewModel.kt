@@ -47,6 +47,9 @@ class MainViewModel @Inject constructor(
     // Whether a sync is in progress
     val isSyncing: StateFlow<Boolean> = syncClient.isSyncing
 
+    // Sync history
+    val syncHistory = syncClient.syncHistory
+
     // UI-specific state
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -181,6 +184,21 @@ class MainViewModel @Inject constructor(
                 syncResultMessage = "Periodic sync enabled (every 12 hours)"
             )
         }
+    }
+
+    /**
+     * Get sync statistics.
+     */
+    fun getSyncStatistics() = syncClient.getSyncStatistics()
+
+    /**
+     * Clear sync history.
+     */
+    fun clearSyncHistory() {
+        syncClient.clearSyncHistory()
+        _uiState.value = _uiState.value.copy(
+            syncResultMessage = "Sync history cleared"
+        )
     }
 
     /**

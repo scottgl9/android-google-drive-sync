@@ -263,6 +263,33 @@
   - "Browse Files" button in Settings card
   - Simple state-based navigation
 
+### 2026-01-13 - Sync History Feature
+
+#### Sync History (`sync/`)
+- [x] Implemented `SyncHistory`:
+  - `SyncHistoryEntry` - Serializable data class for history entries
+  - `SyncHistoryStatus` - Enum for sync statuses
+  - `SyncHistoryManager` - Manages history persistence and retrieval
+  - `SyncStatistics` - Aggregated sync statistics
+- [x] Integrated with `SyncManager`:
+  - Automatic recording of sync results
+  - History and statistics exposed via StateFlow
+- [x] Updated `GoogleSyncClient`:
+  - `syncHistory` - Observable history
+  - `getSyncStatistics()` - Get aggregated stats
+  - `clearSyncHistory()` - Clear all history
+
+#### Sample App History Screen
+- [x] Implemented `SyncHistoryScreen`:
+  - Statistics card with totals
+  - History list with status icons
+  - Relative timestamps
+  - Clear history functionality
+  - Empty state handling
+- [x] Integrated into MainActivity:
+  - "View History" button in Settings card
+  - Screen navigation
+
 ### 2026-01-13 - Unit Tests Implementation
 
 #### Local Module Tests (`local/`)

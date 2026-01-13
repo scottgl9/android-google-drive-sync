@@ -168,7 +168,7 @@
 - [x] Add file browser with file management
 - [x] Implement manual sync trigger
 - [x] Add settings for sync configuration
-- [ ] Show sync history/logs
+- [x] Show sync history/logs
 - [ ] Test on multiple devices
 
 ---

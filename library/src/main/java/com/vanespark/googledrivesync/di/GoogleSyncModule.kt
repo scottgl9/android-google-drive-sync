@@ -13,6 +13,7 @@ import com.vanespark.googledrivesync.resilience.NetworkMonitor
 import com.vanespark.googledrivesync.resilience.SyncProgressManager
 import com.vanespark.googledrivesync.sync.ConflictResolver
 import com.vanespark.googledrivesync.sync.SyncEngine
+import com.vanespark.googledrivesync.sync.SyncHistoryManager
 import com.vanespark.googledrivesync.sync.SyncManager
 import com.vanespark.googledrivesync.worker.SyncScheduler
 import dagger.Module
@@ -100,6 +101,12 @@ object GoogleSyncModule {
 
     @Provides
     @Singleton
+    fun provideSyncHistoryManager(
+        @ApplicationContext context: Context
+    ): SyncHistoryManager = SyncHistoryManager(context)
+
+    @Provides
+    @Singleton
     fun provideSyncEngine(
         driveService: DriveService,
         localFileManager: LocalFileManager,
@@ -120,12 +127,14 @@ object GoogleSyncModule {
         authManager: GoogleAuthManager,
         syncEngine: SyncEngine,
         networkMonitor: NetworkMonitor,
-        progressManager: SyncProgressManager
+        progressManager: SyncProgressManager,
+        historyManager: SyncHistoryManager
     ): SyncManager = SyncManager(
         authManager,
         syncEngine,
         networkMonitor,
-        progressManager
+        progressManager,
+        historyManager
     )
 
     // ========== Worker ==========

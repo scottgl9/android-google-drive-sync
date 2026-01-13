@@ -73,19 +73,31 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    var showFileBrowser by remember { mutableStateOf(false) }
+                    var currentScreen by remember { mutableStateOf("main") }
 
-                    if (showFileBrowser) {
-                        FileBrowserScreen(
-                            syncDirectory = syncDir,
-                            onBack = { showFileBrowser = false }
-                        )
-                    } else {
-                        MainScreen(
-                            viewModel = viewModel,
-                            onSignIn = { signInLauncher.launch(viewModel.getSignInIntent()) },
-                            onOpenFileBrowser = { showFileBrowser = true }
-                        )
+                    when (currentScreen) {
+                        "files" -> {
+                            FileBrowserScreen(
+                                syncDirectory = syncDir,
+                                onBack = { currentScreen = "main" }
+                            )
+                        }
+                        "history" -> {
+                            SyncHistoryScreen(
+                                historyFlow = viewModel.syncHistory,
+                                statistics = viewModel.getSyncStatistics(),
+                                onBack = { currentScreen = "main" },
+                                onClearHistory = { viewModel.clearSyncHistory() }
+                            )
+                        }
+                        else -> {
+                            MainScreen(
+                                viewModel = viewModel,
+                                onSignIn = { signInLauncher.launch(viewModel.getSignInIntent()) },
+                                onOpenFileBrowser = { currentScreen = "files" },
+                                onOpenHistory = { currentScreen = "history" }
+                            )
+                        }
                     }
                 }
             }
@@ -97,7 +109,8 @@ class MainActivity : ComponentActivity() {
 fun MainScreen(
     viewModel: MainViewModel,
     onSignIn: () -> Unit,
-    onOpenFileBrowser: () -> Unit
+    onOpenFileBrowser: () -> Unit,
+    onOpenHistory: () -> Unit
 ) {
     val authState by viewModel.authState.collectAsState()
     val syncProgress by viewModel.syncProgress.collectAsState()
@@ -171,7 +184,8 @@ fun MainScreen(
                     lastSyncTime = uiState.lastSyncTime,
                     isPeriodicSyncEnabled = uiState.isPeriodicSyncEnabled,
                     onTogglePeriodicSync = { viewModel.togglePeriodicSync() },
-                    onOpenFileBrowser = onOpenFileBrowser
+                    onOpenFileBrowser = onOpenFileBrowser,
+                    onOpenHistory = onOpenHistory
                 )
             }
         }
@@ -392,7 +406,8 @@ fun SettingsCard(
     lastSyncTime: Long?,
     isPeriodicSyncEnabled: Boolean,
     onTogglePeriodicSync: () -> Unit,
-    onOpenFileBrowser: () -> Unit
+    onOpenFileBrowser: () -> Unit,
+    onOpenHistory: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -422,11 +437,22 @@ fun SettingsCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            OutlinedButton(
-                onClick = onOpenFileBrowser,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Browse Files")
+            Row(modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = onOpenFileBrowser,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Browse Files")
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                OutlinedButton(
+                    onClick = onOpenHistory,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("View History")
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
