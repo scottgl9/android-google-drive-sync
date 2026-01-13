@@ -350,3 +350,43 @@ data class DriveFileCache(
      */
     val size: Int get() = filesByPath.size
 }
+
+/**
+ * Result of duplicate file removal operation
+ */
+data class DuplicateRemovalResult(
+    /**
+     * Number of duplicate files removed
+     */
+    val duplicatesRemoved: Int,
+
+    /**
+     * Total bytes freed by removing duplicates
+     */
+    val bytesFreed: Long
+)
+
+/**
+ * Result of upload integrity verification
+ */
+data class IntegrityVerificationResult(
+    /**
+     * Whether the upload was verified as intact
+     */
+    val verified: Boolean,
+
+    /**
+     * Reason for verification failure (if not verified)
+     */
+    val reason: String? = null,
+
+    /**
+     * Local file checksum
+     */
+    val localChecksum: String? = null,
+
+    /**
+     * Remote file checksum
+     */
+    val remoteChecksum: String? = null
+)

@@ -424,6 +424,145 @@ class DriveFileOperations @Inject constructor() {
     }
 
     /**
+     * Remove duplicate files in a folder, keeping only the most recently modified version.
+     * Files are considered duplicates if they have the same base name (ignoring hash suffixes).
+     *
+     * @param driveService The Drive service instance
+     * @param parentFolderId The parent folder ID to scan for duplicates
+     * @return Result with count of removed duplicates
+     */
+    suspend fun removeDuplicateFiles(
+        driveService: Drive,
+        parentFolderId: String
+    ): DriveOperationResult<DuplicateRemovalResult> = withContext(Dispatchers.IO) {
+        try {
+            val result = listAllFiles(driveService, parentFolderId)
+
+            when (result) {
+                is DriveOperationResult.Success -> {
+                    val files = result.data.filter { !it.isFolder }
+
+                    // Group files by base name (without hash suffix)
+                    val filesByBaseName = files.groupBy { extractBaseName(it.name) }
+
+                    var duplicatesRemoved = 0
+                    var bytesFreed = 0L
+
+                    for ((_, duplicates) in filesByBaseName) {
+                        if (duplicates.size > 1) {
+                            // Sort by modified time, newest first
+                            val sorted = duplicates.sortedByDescending { it.modifiedTime }
+                            val toKeep = sorted.first()
+
+                            // Delete all except the newest
+                            for (duplicate in sorted.drop(1)) {
+                                val deleteResult = deleteFile(driveService, duplicate.id)
+                                if (deleteResult is DriveOperationResult.Success) {
+                                    duplicatesRemoved++
+                                    bytesFreed += duplicate.size
+                                    Log.d(
+                                        Constants.TAG,
+                                        "Removed duplicate: ${duplicate.name} (keeping ${toKeep.name})"
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Log.d(
+                        Constants.TAG,
+                        "Duplicate removal complete: $duplicatesRemoved files, $bytesFreed bytes freed"
+                    )
+                    DriveOperationResult.Success(
+                        DuplicateRemovalResult(
+                            duplicatesRemoved = duplicatesRemoved,
+                            bytesFreed = bytesFreed
+                        )
+                    )
+                }
+                else -> result as DriveOperationResult<DuplicateRemovalResult>
+            }
+        } catch (e: Exception) {
+            Log.e(Constants.TAG, "Duplicate removal failed", e)
+            handleException(e)
+        }
+    }
+
+    /**
+     * Extract base name from a potentially hashed filename.
+     * Handles patterns like "filename_abc123def.ext" -> "filename.ext"
+     */
+    private fun extractBaseName(filename: String): String {
+        // Pattern: name_hash.ext where hash is alphanumeric
+        val hashPattern = Regex("^(.+)_[a-fA-F0-9]{8,}\\.(.+)$")
+        val match = hashPattern.matchEntire(filename)
+        return if (match != null) {
+            "${match.groupValues[1]}.${match.groupValues[2]}"
+        } else {
+            filename
+        }
+    }
+
+    /**
+     * Verify upload integrity by comparing local and remote checksums.
+     * Deletes the remote file if checksums don't match.
+     *
+     * @param driveService The Drive service instance
+     * @param fileId The remote file ID to verify
+     * @param localChecksum The expected MD5 checksum
+     * @return Verification result
+     */
+    suspend fun verifyUploadIntegrity(
+        driveService: Drive,
+        fileId: String,
+        localChecksum: String
+    ): DriveOperationResult<IntegrityVerificationResult> = withContext(Dispatchers.IO) {
+        try {
+            val fileResult = getFile(driveService, fileId)
+
+            when (fileResult) {
+                is DriveOperationResult.Success -> {
+                    val remoteChecksum = fileResult.data.md5Checksum
+
+                    if (remoteChecksum == null) {
+                        Log.w(Constants.TAG, "Remote file has no checksum, cannot verify")
+                        DriveOperationResult.Success(
+                            IntegrityVerificationResult(
+                                verified = false,
+                                reason = "No remote checksum available"
+                            )
+                        )
+                    } else if (localChecksum.equals(remoteChecksum, ignoreCase = true)) {
+                        Log.d(Constants.TAG, "Upload integrity verified: $fileId")
+                        DriveOperationResult.Success(
+                            IntegrityVerificationResult(verified = true)
+                        )
+                    } else {
+                        Log.e(
+                            Constants.TAG,
+                            "Checksum mismatch! Local: $localChecksum, Remote: $remoteChecksum"
+                        )
+                        // Delete corrupted upload
+                        deleteFile(driveService, fileId)
+                        DriveOperationResult.Success(
+                            IntegrityVerificationResult(
+                                verified = false,
+                                reason = "Checksum mismatch - file deleted",
+                                localChecksum = localChecksum,
+                                remoteChecksum = remoteChecksum
+                            )
+                        )
+                    }
+                }
+                else -> fileResult as DriveOperationResult<IntegrityVerificationResult>
+            }
+        } catch (e: Exception) {
+            Log.e(Constants.TAG, "Integrity verification failed", e)
+            handleException(e)
+        }
+    }
+
+    /**
      * Convert Drive API exception to operation result
      */
     private fun <T> handleException(e: Exception): DriveOperationResult<T> {

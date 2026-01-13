@@ -47,6 +47,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `executeSyncPlan()` now uses batch processing with delays to avoid rate limiting
 - `executeSyncPlan()` now monitors progress timeout to cancel stalled syncs
 
+## [0.2.2] - 2026-01-13
+
+### Added
+- **File Maintenance**
+  - `removeDuplicateFiles()` - Remove duplicate files keeping most recent version
+  - `DuplicateRemovalResult` - Result with removed count and bytes freed
+  - `verifyUploadIntegrity()` - Verify upload by comparing local/remote checksums
+  - `IntegrityVerificationResult` - Result with verification status and checksums
+  - Auto-delete corrupted uploads when checksum mismatch detected
+
 ## [0.2.1] - 2026-01-13
 
 ### Added
@@ -146,11 +156,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 0.2.2 | 2026-01-13 | Duplicate file removal, upload integrity verification |
 | 0.2.1 | 2026-01-13 | Multi-device safety, sync metadata, batch processing, progress timeout |
 | 0.2.0 | 2026-01-13 | Encryption, backup/restore, resilience, recursive file listing |
 | 0.1.0 | 2026-01-13 | Initial release with full sync functionality |
 
-[Unreleased]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/scottgl9/android-google-drive-sync/releases/tag/v0.1.0
