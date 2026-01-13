@@ -26,7 +26,7 @@
 - [x] Create `AuthResult` sealed class for auth operations
 - [x] Create `AuthConfig` data class for configuration
 - [x] Add sign-out and account switching support
-- [ ] Write unit tests for auth flows
+- [ ] Write unit tests for auth flows (requires Android framework mocking)
 
 ### Drive Operations Module (`drive/`)
 
@@ -53,14 +53,15 @@
   - [x] Extension filtering
   - [x] Size filtering
   - [x] Hidden file handling
-- [ ] Write tests for all local operations
+- [x] Write tests for FileFilter
+- [x] Write tests for FileHasher
 
 ### Resilience Module (`resilience/`)
 
 - [x] Implement `RetryPolicy` with exponential backoff
 - [x] Create `NetworkMonitor` for connectivity checking
 - [x] Implement `SyncProgressManager` for progress tracking
-- [ ] Write resilience tests
+- [x] Write tests for RetryPolicy
 
 ### Dependency Injection (`di/`)
 
@@ -93,7 +94,9 @@
   - [x] SKIP
 - [x] Implement `SyncState` tracking
 - [x] Add progress reporting via Flow
-- [ ] Write extensive tests for sync scenarios
+- [x] Write tests for ConflictResolver
+- [x] Write tests for SyncModels
+- [ ] Write tests for SyncEngine (integration tests)
 
 ### Cache Layer (`cache/`)
 

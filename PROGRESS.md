@@ -249,6 +249,42 @@
   - Snackbar notifications for results
 - [x] Added `hilt-navigation-compose` dependency for HiltViewModel
 
+### 2026-01-13 - Unit Tests Implementation
+
+#### Local Module Tests (`local/`)
+- [x] `FileFilterTest` - Comprehensive tests for all filter types:
+  - Extension filters (include/exclude)
+  - Size filters (min/max/range)
+  - Hidden file filters
+  - Glob pattern filters
+  - Composite filters (and/or/not)
+  - Default sync filter
+- [x] `FileHasherTest` - Tests for file hashing:
+  - MD5 and SHA256 hash calculation
+  - Hash verification
+  - Hashed filename creation and extraction
+
+#### Sync Module Tests (`sync/`)
+- [x] `ConflictResolverTest` - Tests for conflict resolution:
+  - All conflict policies (LOCAL_WINS, REMOTE_WINS, NEWER_WINS, KEEP_BOTH, SKIP, ASK_USER)
+  - Timestamp-based resolution
+  - User callback integration
+  - Conflict detection
+  - Conflict suffix generation
+- [x] `SyncModelsTest` - Tests for sync data classes:
+  - SyncItem, SyncAction, SyncMode, ConflictPolicy
+  - SyncResult variants (Success, PartialSuccess, Error, etc.)
+  - SyncOptions presets
+  - FileManifest and FileManifestEntry
+  - ConflictInfo and ConflictResolution
+
+#### Resilience Module Tests (`resilience/`)
+- [x] `RetryPolicyTest` - Tests for retry behavior:
+  - Policy presets (DEFAULT, AGGRESSIVE, MINIMAL, NONE)
+  - shouldRetry logic for various exceptions
+  - Delay calculation with exponential backoff
+  - withRetry function with success and failure scenarios
+
 ---
 
 ## Milestones
@@ -315,6 +351,7 @@ This library is informed by patterns from:
 | 0.0.2 | 2026-01-13 | Phase 2 core infrastructure (auth, drive, local, resilience, DI) |
 | 0.0.3 | 2026-01-13 | Phase 3-5: Sync engine, worker, public API, cache |
 | 0.0.4 | 2026-01-13 | Phase 7: Sample app with full UI implementation |
+| 0.0.5 | 2026-01-13 | Unit tests for local, sync, and resilience modules |
 
 ---
 
