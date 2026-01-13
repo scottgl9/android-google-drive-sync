@@ -184,7 +184,7 @@ class DriveService @Inject constructor(
     }
 
     /**
-     * List all files in the sync folder.
+     * List all files in the sync folder (root level only).
      *
      * @param rootFolderName The root folder name
      * @return List of files
@@ -199,6 +199,46 @@ class DriveService @Inject constructor(
 
         return withDrive { drive ->
             fileOperations.listAllFiles(drive, folders.syncFolderId)
+        }
+    }
+
+    /**
+     * List all files recursively in the sync folder, including subdirectories.
+     * Returns files with their relative paths from the sync root.
+     *
+     * @param rootFolderName The root folder name
+     * @return List of files with relative paths
+     */
+    suspend fun listSyncFilesRecursive(
+        rootFolderName: String
+    ): DriveOperationResult<List<DriveFileWithPath>> {
+        val folders = when (val result = ensureFolderStructure(rootFolderName)) {
+            is DriveOperationResult.Success -> result.data
+            else -> return result as DriveOperationResult<List<DriveFileWithPath>>
+        }
+
+        return withDrive { drive ->
+            fileOperations.listAllFilesRecursive(drive, folders.syncFolderId)
+        }
+    }
+
+    /**
+     * Build a file cache for efficient lookups during sync.
+     * The cache maps relative paths to file metadata and checksums to paths.
+     *
+     * @param rootFolderName The root folder name
+     * @return File cache for O(1) lookups
+     */
+    suspend fun buildSyncFileCache(
+        rootFolderName: String
+    ): DriveOperationResult<DriveFileCache> {
+        val folders = when (val result = ensureFolderStructure(rootFolderName)) {
+            is DriveOperationResult.Success -> result.data
+            else -> return result as DriveOperationResult<DriveFileCache>
+        }
+
+        return withDrive { drive ->
+            fileOperations.buildFileCache(drive, folders.syncFolderId)
         }
     }
 

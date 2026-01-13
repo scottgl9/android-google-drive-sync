@@ -8,11 +8,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Backup/Restore API for creating and restoring ZIP backups
 - Room database persistence for sync state
-- Encryption at rest for uploaded files
 - Chunked upload for large files
 - Parallel upload/download operations
+- Compression before upload
+
+## [0.2.0] - 2026-01-13
+
+### Added
+- **Encryption Module**
+  - `CryptoManager` - AES-256-GCM encryption/decryption
+  - `PassphraseBasedCrypto` - PBKDF2 key derivation from passphrases
+  - `EncryptionManager` - High-level encryption coordinator
+  - Secure random IV generation for each encryption operation
+
+- **Backup/Restore Module**
+  - `BackupManager` - Create encrypted ZIP backups with integrity verification
+  - `RestoreManager` - Restore and verify encrypted backups
+  - Progress callbacks for backup/restore operations
+  - Backup metadata with timestamps and checksums
+
+- **Resilience Improvements**
+  - `RateLimitHandler` - Google Drive API rate limit handling with exponential backoff
+  - `RateLimitException` - Custom exception with retry delay calculation
+  - Enhanced `SyncProgressManager` with full resume state persistence
+  - `ResumeInfo` - Serializable state for interrupted sync recovery
+
+- **Recursive File Listing**
+  - `listAllFilesRecursive()` - Recursively list all files in subdirectories
+  - `buildFileCache()` - Build O(1) lookup cache for efficient sync
+  - `DriveFileWithPath` - File wrapper with relative path from sync root
+  - `DriveFileCache` - Maps paths to files and checksums to paths
+  - Fixed subdirectory sync: files now matched by full relative path
+
+### Changed
+- `buildRemoteManifest()` now uses recursive listing for proper subdirectory support
+- `FileManifestEntry` now includes `driveFileId` for direct file downloads
 
 ## [0.1.0] - 2026-01-13
 
@@ -93,7 +124,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 0.2.0 | 2026-01-13 | Encryption, backup/restore, resilience, recursive file listing |
 | 0.1.0 | 2026-01-13 | Initial release with full sync functionality |
 
-[Unreleased]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/scottgl9/android-google-drive-sync/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/scottgl9/android-google-drive-sync/releases/tag/v0.1.0

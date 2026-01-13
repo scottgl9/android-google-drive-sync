@@ -6,12 +6,15 @@ A robust, flexible Android library for synchronizing files with Google Drive.
 
 - **Bidirectional Sync**: Upload and download files between local storage and Google Drive
 - **Checksum-Based Deduplication**: Skip unchanged files using MD5/SHA256 hashing
+- **Recursive Subdirectory Support**: Full subdirectory sync with efficient O(1) file cache lookups
 - **Conflict Resolution**: Multiple strategies (local wins, remote wins, newer wins, keep both, skip, ask user)
 - **Background Sync**: WorkManager integration for scheduled periodic synchronization
 - **Resilient Operations**: Retry logic with exponential backoff and error recovery
 - **Flexible Configuration**: Configurable sync policies, folder structures, and file filters
 - **Progress Tracking**: Real-time sync progress via Kotlin StateFlow
 - **Sync History**: Track and analyze sync operations with statistics
+- **Backup & Restore**: Create and restore encrypted ZIP backups
+- **Encryption**: AES-256-GCM encryption with passphrase-based key derivation
 
 ## Requirements
 
@@ -487,10 +490,15 @@ Run the sample:
 
 ## Roadmap
 
+### Completed Features
+
+- [x] Backup/Restore API (create/restore ZIP backups)
+- [x] Encryption at rest (AES-256-GCM)
+- [x] Rate limiting and resilience improvements
+- [x] Recursive subdirectory sync with file cache
+
 ### Planned Features
 
-- [ ] Backup/Restore API (create/restore ZIP backups)
-- [ ] Encryption at rest
 - [ ] Compression before upload
 - [ ] Chunked upload for large files
 - [ ] Parallel upload/download

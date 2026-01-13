@@ -293,3 +293,60 @@ data class FolderCache(
     fun withFolder(path: String, folderId: String): FolderCache =
         copy(folderIds = folderIds + (path to folderId))
 }
+
+/**
+ * Wrapper for DriveFile with its relative path from sync root.
+ * Used for recursive file listing.
+ */
+data class DriveFileWithPath(
+    /**
+     * The Drive file
+     */
+    val file: DriveFile,
+
+    /**
+     * Relative path from sync root (e.g., "subdir/file.txt")
+     */
+    val relativePath: String
+)
+
+/**
+ * Cache of remote files for efficient lookups during sync.
+ * Enables O(1) file existence checks instead of O(n) API calls.
+ */
+data class DriveFileCache(
+    /**
+     * Map of relative path to file metadata
+     */
+    val filesByPath: Map<String, DriveFile>,
+
+    /**
+     * Map of MD5 checksum to relative path for duplicate detection
+     */
+    val checksumToPath: Map<String, String>
+) {
+    /**
+     * Check if a file exists at the given path
+     */
+    fun hasFile(path: String): Boolean = filesByPath.containsKey(path)
+
+    /**
+     * Get file by path
+     */
+    fun getFile(path: String): DriveFile? = filesByPath[path]
+
+    /**
+     * Check if a file with the given checksum already exists
+     */
+    fun hasChecksum(checksum: String): Boolean = checksumToPath.containsKey(checksum)
+
+    /**
+     * Get the path of file with the given checksum
+     */
+    fun getPathByChecksum(checksum: String): String? = checksumToPath[checksum]
+
+    /**
+     * Number of files in cache
+     */
+    val size: Int get() = filesByPath.size
+}

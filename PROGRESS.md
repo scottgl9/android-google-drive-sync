@@ -299,6 +299,63 @@
   - Added version history summary
   - Added GitHub release links
 
+### 2026-01-13 - Encryption, Backup/Restore, and Resilience
+
+#### Encryption Module (`crypto/`)
+- [x] Implemented `CryptoManager`:
+  - AES-256-GCM encryption/decryption
+  - Secure random IV generation
+  - File and byte array encryption
+- [x] Implemented `PassphraseBasedCrypto`:
+  - PBKDF2WithHmacSHA256 key derivation
+  - Configurable iteration count and key length
+  - Salt generation and storage
+- [x] Implemented `EncryptionManager`:
+  - High-level coordinator for encryption operations
+  - Support for both key-based and passphrase-based encryption
+
+#### Backup/Restore Module (`backup/`)
+- [x] Implemented `BackupManager`:
+  - Create encrypted ZIP backups
+  - Progress callbacks during backup
+  - Backup metadata with timestamps and checksums
+  - Integrity verification
+- [x] Implemented `RestoreManager`:
+  - Restore encrypted backups
+  - Verify backup integrity before restoration
+  - Progress callbacks during restore
+
+#### Resilience Enhancements (`resilience/`)
+- [x] Implemented `RateLimitHandler`:
+  - Google Drive API rate limit detection
+  - Exponential backoff with configurable parameters
+  - Retry-After header parsing
+- [x] Implemented `RateLimitException`:
+  - Custom exception with retry delay calculation
+  - Integration with existing retry logic
+- [x] Enhanced `SyncProgressManager`:
+  - Full resume state persistence via `ResumeInfo`
+  - Pending files tracking for interrupted syncs
+  - JSON serialization for state persistence
+
+#### Recursive File Listing (`drive/`)
+- [x] Implemented `listAllFilesRecursive()` in DriveFileOperations:
+  - Recursively lists all files in subdirectories
+  - Returns files with relative paths from sync root
+- [x] Implemented `buildFileCache()`:
+  - Builds O(1) lookup cache for efficient sync
+  - Maps paths to files and checksums to paths
+- [x] Added `DriveFileWithPath` data class:
+  - Wraps DriveFile with relative path
+- [x] Added `DriveFileCache` data class:
+  - Path-to-file mapping
+  - Checksum-to-path mapping for deduplication
+- [x] Updated `buildRemoteManifest()` in SyncEngine:
+  - Now uses recursive listing
+  - Files matched by full relative path (e.g., "subdir/file.txt")
+- [x] Added `driveFileId` to `FileManifestEntry`:
+  - Enables direct file downloads with correct ID
+
 ### 2026-01-13 - README Documentation Update
 
 #### Documentation
@@ -425,6 +482,8 @@ This library is informed by patterns from:
 | 0.0.4 | 2026-01-13 | Phase 7: Sample app with full UI implementation |
 | 0.0.5 | 2026-01-13 | Unit tests for local, sync, and resilience modules |
 | 0.0.6 | 2026-01-13 | Comprehensive README documentation |
+| 0.0.7 | 2026-01-13 | Encryption, backup/restore, rate limiting |
+| 0.0.8 | 2026-01-13 | Recursive file listing and file cache for efficient sync |
 
 ---
 

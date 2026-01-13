@@ -75,28 +75,29 @@ class SyncEngine @Inject constructor(
     }
 
     /**
-     * Build a manifest of remote files
+     * Build a manifest of remote files (includes subdirectories recursively)
      *
      * @param rootFolderName The root folder name on Drive
-     * @return Remote file manifest
+     * @return Remote file manifest with full relative paths
      */
     suspend fun buildRemoteManifest(rootFolderName: String): FileManifest {
-        Log.d(Constants.TAG, "Building remote manifest from $rootFolderName")
+        Log.d(Constants.TAG, "Building remote manifest from $rootFolderName (recursive)")
 
-        val result = driveService.listSyncFiles(rootFolderName)
+        val result = driveService.listSyncFilesRecursive(rootFolderName)
 
         return when (result) {
             is DriveOperationResult.Success -> {
-                val entries = result.data.filter { !it.isFolder }.associate { file ->
-                    file.name to FileManifestEntry(
-                        relativePath = file.name,
-                        name = file.name,
-                        size = file.size,
-                        modifiedTime = file.modifiedTime,
-                        checksum = file.md5Checksum
+                val entries = result.data.associate { fileWithPath ->
+                    fileWithPath.relativePath to FileManifestEntry(
+                        relativePath = fileWithPath.relativePath,
+                        name = fileWithPath.file.name,
+                        size = fileWithPath.file.size,
+                        modifiedTime = fileWithPath.file.modifiedTime,
+                        checksum = fileWithPath.file.md5Checksum,
+                        driveFileId = fileWithPath.file.id
                     )
                 }
-                Log.d(Constants.TAG, "Remote manifest built: ${entries.size} files")
+                Log.d(Constants.TAG, "Remote manifest built: ${entries.size} files (recursive)")
                 FileManifest(files = entries)
             }
             else -> {
@@ -466,7 +467,7 @@ class SyncEngine @Inject constructor(
 
     private fun FileManifestEntry.toDriveFile(): DriveFile {
         return DriveFile(
-            id = "", // Will be populated from actual remote file
+            id = driveFileId ?: "",
             name = name,
             size = size,
             modifiedTime = modifiedTime,

@@ -335,6 +335,95 @@ class DriveFileOperations @Inject constructor() {
     }
 
     /**
+     * List all files recursively in a folder, including subdirectories.
+     * Returns files with their relative paths.
+     *
+     * @param driveService The Drive service instance
+     * @param parentFolderId The parent folder ID
+     * @param basePath The base path prefix for relative paths
+     * @return All files with their relative paths
+     */
+    suspend fun listAllFilesRecursive(
+        driveService: Drive,
+        parentFolderId: String,
+        basePath: String = ""
+    ): DriveOperationResult<List<DriveFileWithPath>> = withContext(Dispatchers.IO) {
+        try {
+            val allFiles = mutableListOf<DriveFileWithPath>()
+
+            // List all items in this folder
+            val result = listAllFiles(driveService, parentFolderId)
+
+            when (result) {
+                is DriveOperationResult.Success -> {
+                    for (file in result.data) {
+                        val relativePath = if (basePath.isEmpty()) file.name else "$basePath/${file.name}"
+
+                        if (file.isFolder) {
+                            // Recursively list subfolder contents
+                            when (val subResult = listAllFilesRecursive(driveService, file.id, relativePath)) {
+                                is DriveOperationResult.Success -> {
+                                    allFiles.addAll(subResult.data)
+                                }
+                                else -> {
+                                    Log.w(Constants.TAG, "Failed to list subfolder $relativePath")
+                                }
+                            }
+                        } else {
+                            // Add file with its relative path
+                            allFiles.add(DriveFileWithPath(
+                                file = file,
+                                relativePath = relativePath
+                            ))
+                        }
+                    }
+                    DriveOperationResult.Success(allFiles)
+                }
+                else -> result as DriveOperationResult<List<DriveFileWithPath>>
+            }
+        } catch (e: Exception) {
+            Log.e(Constants.TAG, "Recursive file list failed", e)
+            handleException(e)
+        }
+    }
+
+    /**
+     * Build a cache of all files for efficient lookups.
+     * Maps relative paths to file info including checksums.
+     *
+     * @param driveService The Drive service instance
+     * @param parentFolderId The parent folder ID
+     * @return File cache mapping paths to files
+     */
+    suspend fun buildFileCache(
+        driveService: Drive,
+        parentFolderId: String
+    ): DriveOperationResult<DriveFileCache> = withContext(Dispatchers.IO) {
+        try {
+            when (val result = listAllFilesRecursive(driveService, parentFolderId)) {
+                is DriveOperationResult.Success -> {
+                    val filesByPath = result.data.associate { it.relativePath to it.file }
+                    val checksumToPath = mutableMapOf<String, String>()
+
+                    // Build checksum index for efficient duplicate detection
+                    result.data.forEach { fileWithPath ->
+                        fileWithPath.file.md5Checksum?.let { checksum ->
+                            checksumToPath[checksum] = fileWithPath.relativePath
+                        }
+                    }
+
+                    Log.d(Constants.TAG, "Built file cache: ${filesByPath.size} files, ${checksumToPath.size} with checksums")
+                    DriveOperationResult.Success(DriveFileCache(filesByPath, checksumToPath))
+                }
+                else -> result as DriveOperationResult<DriveFileCache>
+            }
+        } catch (e: Exception) {
+            Log.e(Constants.TAG, "Build file cache failed", e)
+            handleException(e)
+        }
+    }
+
+    /**
      * Convert Drive API exception to operation result
      */
     private fun <T> handleException(e: Exception): DriveOperationResult<T> {

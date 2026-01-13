@@ -381,5 +381,10 @@ data class FileManifestEntry(
     /**
      * File checksum
      */
-    val checksum: String?
+    val checksum: String?,
+
+    /**
+     * Google Drive file ID (only set for remote files)
+     */
+    val driveFileId: String? = null
 )
