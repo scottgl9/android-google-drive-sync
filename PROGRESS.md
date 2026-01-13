@@ -233,6 +233,22 @@
   - SyncCache
   - GoogleSyncClient
 
+### 2026-01-13 - Phase 7: Sample App Enhancement
+
+#### Sample App
+- [x] Implemented `MainViewModel`:
+  - Auth state management
+  - Sync operations (sync, uploadOnly, downloadOnly)
+  - Periodic sync scheduling toggle
+  - Progress and result handling
+- [x] Updated `MainActivity` with Compose UI:
+  - Authentication card with sign-in/sign-out
+  - Sync progress card with real-time updates
+  - Sync controls card (bidirectional, upload, download)
+  - Settings card (sync directory, last sync time, periodic sync toggle)
+  - Snackbar notifications for results
+- [x] Added `hilt-navigation-compose` dependency for HiltViewModel
+
 ---
 
 ## Milestones
@@ -298,6 +314,7 @@ This library is informed by patterns from:
 | 0.0.1 | 2026-01-13 | Project initialization, documentation setup |
 | 0.0.2 | 2026-01-13 | Phase 2 core infrastructure (auth, drive, local, resilience, DI) |
 | 0.0.3 | 2026-01-13 | Phase 3-5: Sync engine, worker, public API, cache |
+| 0.0.4 | 2026-01-13 | Phase 7: Sample app with full UI implementation |
 
 ---
 
