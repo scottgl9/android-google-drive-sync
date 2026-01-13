@@ -290,6 +290,28 @@
   - "View History" button in Settings card
   - Screen navigation
 
+### 2026-01-13 - README Documentation Update
+
+#### Documentation
+- [x] Updated README.md with comprehensive documentation:
+  - Accurate API examples matching actual implementation
+  - Hilt dependency injection setup
+  - Google Sign-In with ActivityResult API
+  - All sync operations (sync, uploadOnly, downloadOnly, mirrorToCloud, mirrorFromCloud)
+  - Background sync scheduling with WorkManager
+  - Progress and auth state observation via StateFlow
+  - Sync history and statistics API
+  - Complete configuration options reference
+  - All conflict resolution policies
+  - All network policies
+  - All sync modes
+  - Comprehensive file filter documentation
+  - Error handling patterns
+  - Project structure overview
+  - Building and testing instructions
+  - Sample app description
+  - Roadmap section
+
 ### 2026-01-13 - Unit Tests Implementation
 
 #### Local Module Tests (`local/`)
@@ -393,6 +415,7 @@ This library is informed by patterns from:
 | 0.0.3 | 2026-01-13 | Phase 3-5: Sync engine, worker, public API, cache |
 | 0.0.4 | 2026-01-13 | Phase 7: Sample app with full UI implementation |
 | 0.0.5 | 2026-01-13 | Unit tests for local, sync, and resilience modules |
+| 0.0.6 | 2026-01-13 | Comprehensive README documentation |
 
 ---
 
