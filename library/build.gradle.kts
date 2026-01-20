@@ -75,7 +75,7 @@ dependencies {
 
     // Google Drive API - exposed to consumers via api()
     api("com.google.android.gms:play-services-auth:21.3.0")
-    api("com.google.api-client:google-api-client-android:2.6.0")
+    api("com.google.api-client:google-api-client-android:2.8.1")
     api("com.google.apis:google-api-services-drive:v3-rev20240521-2.0.0")
 
     // Unit Testing
