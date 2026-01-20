@@ -15,7 +15,7 @@ serialization = "1.6.3"
 
 # AndroidX
 core-ktx = "1.13.1"
-lifecycle = "2.8.4"
+lifecycle = "2.10.0"
 activity-compose = "1.9.1"
 work-manager = "2.9.1"
 room = "2.6.1"
